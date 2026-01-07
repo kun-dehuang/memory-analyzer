@@ -1,0 +1,14 @@
+# AI 记忆分析器依赖
+
+# 图像处理
+Pillow>=10.0.0
+
+# Gemini AI
+google-generativeai>=0.3.0
+
+# 环境变量
+python-dotenv>=1.0.0
+
+# 照片去重工具依赖
+imagehash>=4.3.0
+tqdm>=4.65.0
