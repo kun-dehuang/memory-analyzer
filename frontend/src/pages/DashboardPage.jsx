@@ -47,7 +47,7 @@ function DashboardPage() {
         prompt_group_id: selectedPromptGroup.id
       }
 
-      const response = await memoryAPI.createMemoryRecord(recordData)
+      await memoryAPI.createMemoryRecord(recordData)
       navigate(`/memory-records`)
     } catch (err) {
       setError('生成记忆失败，请重试')

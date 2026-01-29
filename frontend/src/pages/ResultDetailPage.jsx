@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { memoryAPI } from '../api/api'
 
-function ResultDetailPage() {
+function ResultDetailPage () {
   const navigate = useNavigate()
   const { recordId } = useParams()
   const [record, setRecord] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    loadRecord()
-  }, [recordId])
-
-  const loadRecord = async () => {
+  const loadRecord = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -25,7 +21,11 @@ function ResultDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [recordId])
+
+  useEffect(() => {
+    loadRecord()
+  }, [loadRecord])
 
   const handleReanalyze = async () => {
     setLoading(true)
@@ -103,25 +103,25 @@ function ResultDetailPage() {
                 <h3 className="text-lg font-medium mb-3">基本信息</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-gray-600">状态:</span> 
+                    <span className="text-gray-600">状态:</span>
                     <span className={`ml-2 ${record.status === 'completed' ? 'text-green-600' : record.status === 'failed' ? 'text-red-600' : 'text-yellow-600'}`}>
                       {record.status === 'completed' ? '已完成' : record.status === 'failed' ? '失败' : record.status === 'processing' ? '处理中' : '待处理'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">照片数量:</span> 
+                    <span className="text-gray-600">照片数量:</span>
                     <span className="ml-2">{record.image_count}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">创建时间:</span> 
+                    <span className="text-gray-600">创建时间:</span>
                     <span className="ml-2">{new Date(record.created_at).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">完成时间:</span> 
+                    <span className="text-gray-600">完成时间:</span>
                     <span className="ml-2">{record.completed_at ? new Date(record.completed_at).toLocaleString() : '未完成'}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-600">时间范围:</span> 
+                    <span className="text-gray-600">时间范围:</span>
                     <span className="ml-2">{record.time_range ? `${record.time_range[0]} 至 ${record.time_range[1]}` : '未知'}</span>
                   </div>
                 </div>
@@ -131,7 +131,7 @@ function ResultDetailPage() {
               {record.phase2_result && (
                 <div className="border rounded p-4">
                   <h3 className="text-lg font-medium mb-3">人格分析结果</h3>
-                  
+
                   {/* 元信息 */}
                   {record.phase2_result.meta && (
                     <div className="mb-4">
