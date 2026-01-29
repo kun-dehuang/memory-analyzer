@@ -10,10 +10,10 @@ import PromptManagementPage from './pages/PromptManagementPage'
 import MemoryRecordsPage from './pages/MemoryRecordsPage'
 import ResultDetailPage from './pages/ResultDetailPage'
 
-function App() {
+function App () {
   return (
     <Provider store={store}>
-      <Router>
+      <Router basename="/memory-analyzer">
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
