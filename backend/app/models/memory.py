@@ -1,0 +1,28 @@
+from typing import List, Dict, Any, Optional, Tuple
+from pydantic import BaseModel
+from datetime import datetime
+
+class MemoryRecordBase(BaseModel):
+    """记忆记录基础模型"""
+    user_id: str
+    prompt_group_id: str
+    phase1_results: Optional[List[Dict[str, Any]]] = None
+    phase2_result: Optional[Dict[str, Any]] = None
+    status: str  # pending, processing, completed, failed
+    error_message: Optional[str] = None
+
+class MemoryRecordCreate(MemoryRecordBase):
+    """记忆记录创建模型"""
+    pass
+
+class MemoryRecord(MemoryRecordBase):
+    """记忆记录完整模型"""
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    completed_at: Optional[datetime] = None
+    image_count: int = 0
+    time_range: Optional[Tuple[str, str]] = None
+    
+    class Config:
+        from_attributes = True
