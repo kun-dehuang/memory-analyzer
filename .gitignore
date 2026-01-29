@@ -28,11 +28,6 @@ wheels/
 .env.local
 *.log
 
-# Cache
-cache/
-*.json
-!skills/*/*.json
-
 # IDE
 .vscode/
 .idea/

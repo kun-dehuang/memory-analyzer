@@ -25,16 +25,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Deploy to Railway using CLI
-        run: |
-          cd backend
-          # Create a temporary package.json for Railway
-          echo '{"name":"memory-analyzer-backend","version":"1.0.0","scripts":{"start":"python main.py"}}' > package.json
-          # Use Railway CLI with temporary package.json
-          npm install -g @railway/cli
-          # Set Railway token as environment variable
-          export RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }}
-          # Deploy without explicit login
-          railway up
-          # Clean up temporary file
-          rm package.json
+      - name: Deploy to Railway using GitHub Action
+        uses: railwayapp/github-action@v2
+        with:
+          apiToken: ${{ secrets.RAILWAY_API_TOKEN }}
+          projectId: ${{ secrets.RAILWAY_PROJECT_ID }}
+          serviceId: ${{ secrets.RAILWAY_SERVICE_ID }}
+          rootDirectory: ./backend
