@@ -9,26 +9,6 @@ function PromptManagementPage () {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showAddGroupModal, setShowAddGroupModal] = useState(false)
-  const [newGroup, setNewGroup] = useState({
-    name: '',
-    description: '',
-    prompts: [
-      {
-        name: 'Phase 1',
-        content: '',
-        type: 'phase1',
-        description: '记忆分析第一阶段提示词',
-        variables: []
-      },
-      {
-        name: 'Phase 2',
-        content: '',
-        type: 'phase2',
-        description: '记忆分析第二阶段提示词',
-        variables: []
-      }
-    ]
-  })
 
   const defaultPrompts = {
     phase1: `你是一位专业的视觉人类学家。请详细描述这批照片中的所有视觉要素，包括：
@@ -51,6 +31,27 @@ function PromptManagementPage () {
 
 请以温暖、理解、尊重的语气，为用户呈现一份深度的记忆分析报告，帮助用户更好地理解自己。`
   }
+
+  const [newGroup, setNewGroup] = useState({
+    name: '',
+    description: '',
+    prompts: [
+      {
+        name: 'Phase 1',
+        content: defaultPrompts.phase1,
+        type: 'phase1',
+        description: '记忆分析第一阶段提示词',
+        variables: []
+      },
+      {
+        name: 'Phase 2',
+        content: defaultPrompts.phase2,
+        type: 'phase2',
+        description: '记忆分析第二阶段提示词',
+        variables: []
+      }
+    ]
+  })
 
   // 加载提示词组
   useEffect(() => {

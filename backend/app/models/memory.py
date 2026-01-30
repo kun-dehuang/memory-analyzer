@@ -13,7 +13,10 @@ class MemoryRecordBase(BaseModel):
 
 class MemoryRecordCreate(MemoryRecordBase):
     """记忆记录创建模型"""
-    pass
+    status: Optional[str] = None
+    phase1_results: Optional[List[Dict[str, Any]]] = None
+    phase2_result: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
 
 class MemoryRecord(MemoryRecordBase):
     """记忆记录完整模型"""
