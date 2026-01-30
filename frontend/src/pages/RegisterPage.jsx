@@ -51,6 +51,34 @@ function RegisterPage () {
     setError('')
 
     try {
+      // 验证照片是否已选择
+      if (!formData.photo) {
+        setError('请选择一张本人照片')
+        setLoading(false)
+        return
+      }
+
+      // 验证照片文件类型
+      if (!formData.photo.type.startsWith('image/')) {
+        setError('请选择有效的图片文件')
+        setLoading(false)
+        return
+      }
+
+      // 验证照片文件大小（例如：限制为5MB）
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      if (formData.photo.size > maxSize) {
+        setError('照片文件大小不能超过5MB')
+        setLoading(false)
+        return
+      }
+
+      console.log('照片文件信息:', {
+        name: formData.photo.name,
+        type: formData.photo.type,
+        size: formData.photo.size
+      })
+
       // 使用FormData提交注册数据和照片
       const formDataRegister = new FormData()
       formDataRegister.append('icloud_email', formData.icloud_email)
@@ -58,6 +86,7 @@ function RegisterPage () {
       formDataRegister.append('nickname', formData.nickname)
       formDataRegister.append('photo', formData.photo)
 
+      console.log('准备提交注册数据')
       await authAPI.register(formDataRegister)
 
       // 自动登录
@@ -81,13 +110,37 @@ function RegisterPage () {
       // 确保错误信息是字符串
       let errorMessage = '注册失败，请检查信息'
       try {
-        if (err.response && err.response.data && err.response.data.detail) {
-          errorMessage = err.response.data.detail
+        if (err.response && err.response.data) {
+          if (err.response.data.detail) {
+            // 检查detail是否为对象
+            if (typeof err.response.data.detail === 'object') {
+              // 如果是对象，尝试提取错误信息
+              if (Array.isArray(err.response.data.detail)) {
+                // 如果是数组，取第一个错误信息
+                errorMessage = err.response.data.detail[0]?.msg || errorMessage
+              } else if (err.response.data.detail.msg) {
+                // 如果有msg属性，使用它
+                errorMessage = err.response.data.detail.msg
+              } else {
+                // 否则转换为字符串
+                errorMessage = JSON.stringify(err.response.data.detail)
+              }
+            } else {
+              // 如果是字符串，直接使用
+              errorMessage = err.response.data.detail
+            }
+          } else if (err.response.data.message) {
+            errorMessage = err.response.data.message
+          }
         } else if (err.message) {
           errorMessage = err.message
         }
       } catch (e) {
         console.error('处理错误信息失败:', e)
+      }
+      // 确保最终的errorMessage是字符串
+      if (typeof errorMessage !== 'string') {
+        errorMessage = '注册失败，请检查信息'
       }
       setError(errorMessage)
     } finally {
