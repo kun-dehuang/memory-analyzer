@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 from PIL import Image
-import google.generativeai as genai
+import google.genai as genai
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import logging
@@ -320,6 +320,11 @@ class MemoryAnalyzer:
         try:
             # 生成分析结果
             response = model.generate_content(content)
+            
+            # 检查响应是否包含有效的 Part
+            if not response.candidates or not response.candidates[0].content.parts:
+                raise ValueError("响应不包含有效的内容")
+            
             raw_output = response.text.strip()
             
             # 解析分析结果

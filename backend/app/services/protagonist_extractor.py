@@ -9,7 +9,7 @@ import os
 import json
 from pathlib import Path
 from PIL import Image
-import google.generativeai as genai
+import google.genai as genai
 from dotenv import load_dotenv
 
 from ..config.database import prompts_collection

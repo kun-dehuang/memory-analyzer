@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Tuple
 from dataclasses import dataclass, asdict
 from PIL import Image
-import google.generativeai as genai
+import google.genai as genai
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import logging

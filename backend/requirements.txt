@@ -20,7 +20,7 @@ Pillow>=10.0.0
 imagehash>=4.3.0
 
 # AI
-google-generativeai>=0.3.0
+google-genai>=0.3.0
 
 # 环境变量
 python-dotenv>=1.0.0
