@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import List, Optional
 from datetime import datetime
+from bson import ObjectId
 
 from app.models.memory import MemoryRecord, MemoryRecordCreate
 from app.models.user import User
@@ -100,7 +101,7 @@ async def get_memory_record(
     current_user: User = Depends(get_current_user)
 ):
     """获取指定记忆分析记录"""
-    record = await memory_records_collection.find_one({"_id": record_id})
+    record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -139,7 +140,7 @@ async def reanalyze_memory_record(
     current_user: User = Depends(get_current_user)
 ):
     """重新分析记忆记录"""
-    record = await memory_records_collection.find_one({"_id": record_id})
+    record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -155,13 +156,14 @@ async def reanalyze_memory_record(
     
     # 更新状态为重新处理
     await memory_records_collection.update_one(
-        {"_id": record_id},
+        {"_id": ObjectId(record_id)},
         {"$set": {
             "status": "pending",
             "error_message": None,
             "updated_at": datetime.utcnow(),
             "completed_at": None
-        }}
+        }
+    }
     )
     
     # 触发后台分析任务
@@ -181,7 +183,7 @@ async def delete_memory_record(
     current_user: User = Depends(get_current_user)
 ):
     """删除记忆分析记录"""
-    record = await memory_records_collection.find_one({"_id": record_id})
+    record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -196,7 +198,7 @@ async def delete_memory_record(
         )
     
     # 执行删除
-    await memory_records_collection.delete_one({"_id": record_id})
+    await memory_records_collection.delete_one({"_id": ObjectId(record_id)})
     
     return {"message": "记忆记录删除成功"}
 
@@ -214,7 +216,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         )
         
         # 获取用户信息
-        user = await users_collection.find_one({"_id": user_id})
+        user = await users_collection.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise Exception("用户不存在")
         

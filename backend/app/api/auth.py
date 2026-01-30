@@ -114,7 +114,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     
     # 转换为User模型
     user_dict = {
-        "id": user["_id"],
+        "id": str(user["_id"]),
         "icloud_email": user["icloud_email"],
         "nickname": user["nickname"],
         "protagonist_features": user.get("protagonist_features"),
@@ -192,7 +192,7 @@ async def register(
     
     # 转换为User模型
     user_dict = {
-        "id": user_data["_id"],
+        "id": str(user_data["_id"]),
         "icloud_email": user_data["icloud_email"],
         "nickname": user_data["nickname"],
         "protagonist_features": user_data.get("protagonist_features"),

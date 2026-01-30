@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from typing import List, Optional
 from datetime import datetime
+from bson import ObjectId
 
 from app.models.user import User
 from app.api.auth import get_current_user
@@ -39,7 +40,7 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
             detail="无权访问其他用户信息"
         )
     
-    user = await users_collection.find_one({"_id": user_id})
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -78,7 +79,7 @@ async def update_user(
     
     # 执行更新
     result = await users_collection.update_one(
-        {"_id": user_id},
+        {"_id": ObjectId(user_id)},
         {"$set": update_data}
     )
     
@@ -89,7 +90,7 @@ async def update_user(
         )
     
     # 获取更新后的用户信息
-    updated_user = await users_collection.find_one({"_id": user_id})
+    updated_user = await users_collection.find_one({"_id": ObjectId(user_id)})
     user_dict = {
         "id": str(updated_user["_id"]),
         "icloud_email": updated_user["icloud_email"],
@@ -154,7 +155,7 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
         )
     
     # 执行删除
-    result = await users_collection.delete_one({"_id": user_id})
+    result = await users_collection.delete_one({"_id": ObjectId(user_id)})
     
     if result.deleted_count == 0:
         raise HTTPException(

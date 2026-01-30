@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from datetime import datetime
+from bson import ObjectId
 
 from app.models.prompt import PromptGroup, PromptGroupCreate, Prompt, PromptCreate
 from app.models.user import User
@@ -108,7 +109,7 @@ async def get_prompt_group(
     current_user: User = Depends(get_current_user)
 ):
     """获取指定提示词组"""
-    group = await prompt_groups_collection.find_one({"_id": group_id})
+    group = await prompt_groups_collection.find_one({"_id": ObjectId(group_id)})
     if not group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -152,7 +153,7 @@ async def update_prompt_group(
 ):
     """更新提示词组"""
     # 检查提示词组是否存在
-    existing_group = await prompt_groups_collection.find_one({"_id": group_id})
+    existing_group = await prompt_groups_collection.find_one({"_id": ObjectId(group_id)})
     if not existing_group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -161,7 +162,7 @@ async def update_prompt_group(
     
     # 检查名称是否已被其他组使用
     if "name" in update_data and update_data["name"] != existing_group["name"]:
-        duplicate_group = await prompt_groups_collection.find_one({"name": update_data["name"], "_id": {"$ne": group_id}})
+        duplicate_group = await prompt_groups_collection.find_one({"name": update_data["name"], "_id": {"$ne": ObjectId(group_id)}})
         if duplicate_group:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -173,12 +174,12 @@ async def update_prompt_group(
     
     # 执行更新
     await prompt_groups_collection.update_one(
-        {"_id": group_id},
+        {"_id": ObjectId(group_id)},
         {"$set": update_data}
     )
     
     # 获取更新后的提示词组
-    updated_group = await prompt_groups_collection.find_one({"_id": group_id})
+    updated_group = await prompt_groups_collection.find_one({"_id": ObjectId(group_id)})
     
     # 获取该组的所有提示词
     group_prompts = []
@@ -216,7 +217,7 @@ async def delete_prompt_group(
 ):
     """删除提示词组"""
     # 检查提示词组是否存在
-    existing_group = await prompt_groups_collection.find_one({"_id": group_id})
+    existing_group = await prompt_groups_collection.find_one({"_id": ObjectId(group_id)})
     if not existing_group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -227,7 +228,7 @@ async def delete_prompt_group(
     await prompts_collection.delete_many({"prompt_group_id": group_id})
     
     # 删除提示词组
-    await prompt_groups_collection.delete_one({"_id": group_id})
+    await prompt_groups_collection.delete_one({"_id": ObjectId(group_id)})
     
     return {"message": "提示词组删除成功"}
 
@@ -239,7 +240,7 @@ async def create_prompt(
 ):
     """创建提示词"""
     # 检查提示词组是否存在
-    existing_group = await prompt_groups_collection.find_one({"_id": prompt_create.prompt_group_id})
+    existing_group = await prompt_groups_collection.find_one({"_id": ObjectId(prompt_create.prompt_group_id)})
     if not existing_group:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -273,7 +274,7 @@ async def update_prompt(
 ):
     """更新提示词"""
     # 检查提示词是否存在
-    existing_prompt = await prompts_collection.find_one({"_id": prompt_id})
+    existing_prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
     if not existing_prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -285,12 +286,12 @@ async def update_prompt(
     
     # 执行更新
     await prompts_collection.update_one(
-        {"_id": prompt_id},
+        {"_id": ObjectId(prompt_id)},
         {"$set": update_data}
     )
     
     # 获取更新后的提示词
-    updated_prompt = await prompts_collection.find_one({"_id": prompt_id})
+    updated_prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
     prompt_dict = {
         "id": str(updated_prompt["_id"]),
         "name": updated_prompt["name"],
@@ -313,7 +314,7 @@ async def delete_prompt(
 ):
     """删除提示词"""
     # 检查提示词是否存在
-    existing_prompt = await prompts_collection.find_one({"_id": prompt_id})
+    existing_prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
     if not existing_prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -321,6 +322,6 @@ async def delete_prompt(
         )
     
     # 删除提示词
-    await prompts_collection.delete_one({"_id": prompt_id})
+    await prompts_collection.delete_one({"_id": ObjectId(prompt_id)})
     
     return {"message": "提示词删除成功"}
