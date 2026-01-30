@@ -17,7 +17,7 @@ from ..config.database import prompts_collection
 load_dotenv()
 
 # 配置Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 async def get_protagonist_prompt(prompt_group_id: str = None) -> str:
     """
@@ -122,7 +122,7 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
     image = Image.open(reference_photo_path)
 
     # 使用 Flash 提取特征
-    model = genai.GenerativeModel('models/gemini-2.5-flash')
+    model = client.models.generate_content_model('models/gemini-2.5-flash')
 
     # 从数据库获取提示词
     prompt = await get_protagonist_prompt(prompt_group_id)

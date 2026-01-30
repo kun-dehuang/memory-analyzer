@@ -33,7 +33,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 配置Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 class MemoryAnalyzer:
     """记忆分析器"""
@@ -214,7 +214,7 @@ class MemoryAnalyzer:
         phase1_results = []
         
         # 初始化Gemini模型
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        model = client.models.generate_content_model('models/gemini-2.5-flash')
         
         for batch in batches:
             logger.info(f"分析批次: {batch['batch_id']} ({batch['image_count']}张照片)")
@@ -297,7 +297,7 @@ class MemoryAnalyzer:
                              prompts: Dict[str, str]) -> Dict[str, Any]:
         """执行Phase 2分析"""
         # 初始化Gemini模型
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        model = client.models.generate_content_model('models/gemini-2.5-flash')
         
         # 构建提示词
         phase2_prompt = prompts.get("phase2", self._get_default_phase2_prompt())
