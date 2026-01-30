@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
-import { login } from '../store'
 import { authAPI } from '../api/api'
 
 function RegisterPage () {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     icloud_email: '',
@@ -108,22 +105,9 @@ function RegisterPage () {
       console.log('准备提交注册数据')
       await authAPI.register(formDataRegister)
 
-      // 自动登录
-      console.log('准备自动登录:', formData.icloud_email)
-      const loginResponse = await authAPI.login({
-        username: formData.icloud_email,
-        password: formData.icloud_password
-      })
-      console.log('自动登录成功:', loginResponse)
-
-      dispatch(login({
-        user: loginResponse.user,
-        token: loginResponse.access_token
-      }))
-
-      console.log('准备跳转到dashboard')
-      // 使用相对路径或完整路径确保正确跳转
-      navigate('/dashboard')
+      console.log('注册成功，准备跳转到登录页')
+      // 注册成功后跳转到登录页，让用户手动登录
+      navigate('/login')
     } catch (err) {
       console.error('注册失败:', err)
       // 确保错误信息是字符串

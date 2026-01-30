@@ -1,5 +1,5 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import store from './store'
 
@@ -10,10 +10,28 @@ import PromptManagementPage from './pages/PromptManagementPage'
 import MemoryRecordsPage from './pages/MemoryRecordsPage'
 import ResultDetailPage from './pages/ResultDetailPage'
 
+function URLHandler() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // 处理GitHub Pages的URL参数
+    const params = new URLSearchParams(location.search)
+    const path = params.get('p')
+    if (path) {
+      // 将路径参数转换为路由
+      navigate(path, { replace: true })
+    }
+  }, [location, navigate])
+
+  return null
+}
+
 function App () {
   return (
     <Provider store={store}>
       <Router basename="/memory-analyzer">
+        <URLHandler />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />

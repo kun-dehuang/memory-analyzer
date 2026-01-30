@@ -4,26 +4,40 @@ import { useNavigate } from 'react-router-dom'
 import { logout } from '../store'
 import { memoryAPI, promptAPI } from '../api/api'
 
-function DashboardPage() {
+function DashboardPage () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { user } = useSelector(state => state.user)
+  const { user, token } = useSelector(state => state.user)
   const [promptGroups, setPromptGroups] = useState([])
   const [selectedPromptGroup, setSelectedPromptGroup] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // 加载提示词组
+  // 检查用户是否已登录
   useEffect(() => {
+    console.log('DashboardPage - 检查认证状态:', { token, user })
+    if (!token) {
+      console.log('DashboardPage - token不存在，跳转到登录页')
+      navigate('/login')
+      return
+    }
+    console.log('DashboardPage - token存在，开始加载提示词组')
     loadPromptGroups()
-  }, [])
+  }, [token, navigate])
 
   const loadPromptGroups = async () => {
     try {
+      console.log('DashboardPage - 开始加载提示词组')
       const groups = await promptAPI.getPromptGroups()
+      console.log('DashboardPage - 提示词组加载成功:', groups)
       setPromptGroups(groups)
     } catch (err) {
-      console.error('加载提示词组失败:', err)
+      console.error('DashboardPage - 加载提示词组失败:', err)
+      // 如果是401错误，说明token无效，跳转到登录页
+      if (err.response && err.response.status === 401) {
+        console.log('DashboardPage - 收到401错误，跳转到登录页')
+        navigate('/login')
+      }
     }
   }
 
