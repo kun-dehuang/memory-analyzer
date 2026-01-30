@@ -30,6 +30,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """获取密码哈希值"""
+    # 截断密码长度，bcrypt 限制最大 72 字节
+    if len(password) > 72:
+        password = password[:72]
     return pwd_context.hash(password)
 
 
