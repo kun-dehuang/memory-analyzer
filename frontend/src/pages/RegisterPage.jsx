@@ -61,19 +61,35 @@ function RegisterPage () {
       await authAPI.register(formDataRegister)
 
       // 自动登录
+      console.log('准备自动登录:', formData.icloud_email)
       const loginResponse = await authAPI.login({
         username: formData.icloud_email,
         password: formData.icloud_password
       })
+      console.log('自动登录成功:', loginResponse)
 
       dispatch(login({
         user: loginResponse.user,
         token: loginResponse.access_token
       }))
 
+      console.log('准备跳转到dashboard')
+      // 使用相对路径或完整路径确保正确跳转
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.detail || '注册失败，请检查信息')
+      console.error('注册失败:', err)
+      // 确保错误信息是字符串
+      let errorMessage = '注册失败，请检查信息'
+      try {
+        if (err.response && err.response.data && err.response.data.detail) {
+          errorMessage = err.response.data.detail
+        } else if (err.message) {
+          errorMessage = err.message
+        }
+      } catch (e) {
+        console.error('处理错误信息失败:', e)
+      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

@@ -25,7 +25,7 @@ class User(UserBase):
     last_login: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class UserInDB(User):
     """数据库中的用户模型"""

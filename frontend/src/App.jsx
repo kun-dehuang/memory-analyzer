@@ -22,6 +22,8 @@ function App () {
           <Route path="/prompts" element={<PromptManagementPage />} />
           <Route path="/memory-records" element={<MemoryRecordsPage />} />
           <Route path="/result/:recordId" element={<ResultDetailPage />} />
+          {/* 捕获所有未匹配的路由，重定向到登录页 */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
     </Provider>

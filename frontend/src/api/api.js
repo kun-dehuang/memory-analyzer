@@ -26,13 +26,18 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   response => {
-    return response.data
+    // 确保返回的数据格式正确
+    if (response && response.data) {
+      return response.data
+    }
+    return response
   },
   error => {
     if (error.response && error.response.status === 401) {
       // 未授权，清除token并跳转到登录页
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      // 使用正确的路径，考虑GitHub Pages的子目录结构
+      window.location.href = '/memory-analyzer/login'
     }
     return Promise.reject(error)
   }
