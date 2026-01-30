@@ -120,17 +120,28 @@ async def register(user_create: UserCreate):
 
 
 @router.post("/login")
-async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request):
     """用户登录"""
-    # 尝试从 JSON 数据中获取凭据
+    # 从 JSON 数据中获取凭据
     try:
         json_data = await request.json()
         username = json_data.get("username")
         password = json_data.get("password")
-    except:
-        # 如果不是 JSON 数据，使用表单数据
-        username = form_data.username
-        password = form_data.password
+        
+        # 验证必要字段
+        if not username or not password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="缺少用户名或密码",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except Exception as e:
+        # 处理 JSON 解析错误
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请求数据格式错误，请使用 JSON 格式",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # 查找用户
     user = await users_collection.find_one({"icloud_email": username})
