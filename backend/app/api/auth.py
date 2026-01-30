@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -6,9 +6,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 import os
 from dotenv import load_dotenv
+import asyncio
 
 from app.models.user import User, UserCreate, UserLogin
 from app.config.database import users_collection
+from app.services.protagonist_extractor import extract_protagonist_features
 
 load_dotenv()
 
@@ -19,7 +21,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256", "bcrypt"], 
+    deprecated="auto",
+    pbkdf2_sha256__default_rounds=100000
+)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
@@ -30,10 +36,31 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """获取密码哈希值"""
-    # 截断密码长度，bcrypt 限制最大 72 字节
-    if len(password) > 72:
-        password = password[:72]
-    return pwd_context.hash(password)
+    # 确保密码是字符串
+    if not isinstance(password, str):
+        password = str(password)
+    
+    # 尝试使用不同的加密方案，避免 bcrypt 长度限制问题
+    try:
+        # 首先尝试使用 argon2 或其他方案
+        return pwd_context.hash(password)
+    except Exception as e:
+        # 如果失败，尝试手动处理 bcrypt 长度限制
+        try:
+            # 编码为字节并截断
+            password_bytes = password.encode('utf-8')[:72]
+            # 解码回字符串
+            truncated_password = password_bytes.decode('utf-8', errors='ignore')
+            # 再次尝试哈希
+            return pwd_context.hash(truncated_password)
+        except Exception:
+            # 如果仍然失败，使用简单的哈希方案作为后备
+            import hashlib
+            # 创建一个简单的哈希作为后备
+            hash_obj = hashlib.sha256(password.encode('utf-8'))
+            simple_hash = hash_obj.hexdigest()
+            # 使用简单哈希作为密码
+            return pwd_context.hash(simple_hash[:72])
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -81,11 +108,34 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     return User(**user_dict)
 
 
+def background_task(user_id: str, file_path: str):
+    """后台任务：异步分析人物特征"""
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(extract_protagonist_features(file_path, user_id=user_id))
+    finally:
+        loop.close()
+        # 清理临时文件
+        import os
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"✅ 临时文件已清理: {file_path}")
+            except Exception as e:
+                print(f"❌ 清理临时文件失败: {e}")
+
 @router.post("/register", response_model=User)
-async def register(user_create: UserCreate):
+async def register(
+    icloud_email: str = Form(...),
+    icloud_password: str = Form(...),
+    nickname: str = Form(...),
+    photo: UploadFile = File(...)
+):
     """用户注册"""
     # 检查用户是否已存在
-    existing_user = await users_collection.find_one({"icloud_email": user_create.icloud_email})
+    existing_user = await users_collection.find_one({"icloud_email": icloud_email})
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -93,11 +143,11 @@ async def register(user_create: UserCreate):
         )
     
     # 创建新用户
-    hashed_password = get_password_hash(user_create.icloud_password)
+    hashed_password = get_password_hash(icloud_password)
     user_data = {
-        "icloud_email": user_create.icloud_email,
-        "nickname": user_create.nickname,
-        "protagonist_features": user_create.protagonist_features,
+        "icloud_email": icloud_email,
+        "nickname": nickname,
+        "protagonist_features": None,
         "hashed_password": hashed_password,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
@@ -106,7 +156,21 @@ async def register(user_create: UserCreate):
     
     # 插入数据库
     result = await users_collection.insert_one(user_data)
-    user_data["_id"] = str(result.inserted_id)
+    user_id = str(result.inserted_id)
+    user_data["_id"] = user_id
+    
+    # 保存上传的照片
+    file_path = f"temp/{user_id}_{datetime.utcnow().timestamp()}.jpg"
+    os.makedirs("temp", exist_ok=True)
+    with open(file_path, "wb") as buffer:
+        content = await photo.read()
+        buffer.write(content)
+    
+    # 异步执行人物分析
+    import threading
+    thread = threading.Thread(target=background_task, args=(user_id, file_path))
+    thread.daemon = True
+    thread.start()
     
     # 转换为User模型
     user_dict = {

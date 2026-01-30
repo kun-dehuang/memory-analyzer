@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from '../store'
 import { authAPI } from '../api/api'
 
-function LoginPage() {
+function LoginPage () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
@@ -13,6 +13,9 @@ function LoginPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [passwordHint, setPasswordHint] = useState('')
+
+  const MAX_PASSWORD_LENGTH = 72
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -21,6 +24,17 @@ function LoginPage() {
       [name]: value
     }))
   }
+
+  useEffect(() => {
+    const password = formData.icloud_password
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      setPasswordHint(`密码长度超过 ${MAX_PASSWORD_LENGTH} 字符，将被自动截断`)
+    } else if (password.length > MAX_PASSWORD_LENGTH * 0.8) {
+      setPasswordHint(`密码长度接近 ${MAX_PASSWORD_LENGTH} 字符限制`)
+    } else {
+      setPasswordHint('')
+    }
+  }, [formData.icloud_password])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -81,6 +95,11 @@ function LoginPage() {
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+            {passwordHint && (
+              <div className="text-sm text-yellow-600 mt-1">
+                {passwordHint}
+              </div>
+            )}
           </div>
 
           <button

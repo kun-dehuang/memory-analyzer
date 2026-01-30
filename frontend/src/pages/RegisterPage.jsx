@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import { login } from '../store'
 import { authAPI } from '../api/api'
 
-function RegisterPage() {
+function RegisterPage () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
@@ -15,6 +15,20 @@ function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [passwordHint, setPasswordHint] = useState('')
+
+  const MAX_PASSWORD_LENGTH = 72
+
+  useEffect(() => {
+    const password = formData.icloud_password
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      setPasswordHint(`密码长度超过 ${MAX_PASSWORD_LENGTH} 字符，将被自动截断`)
+    } else if (password.length > MAX_PASSWORD_LENGTH * 0.8) {
+      setPasswordHint(`密码长度接近 ${MAX_PASSWORD_LENGTH} 字符限制`)
+    } else {
+      setPasswordHint('')
+    }
+  }, [formData.icloud_password])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -37,22 +51,14 @@ function RegisterPage() {
     setError('')
 
     try {
-      // 首先注册用户
-      const userData = {
-        icloud_email: formData.icloud_email,
-        icloud_password: formData.icloud_password,
-        nickname: formData.nickname
-      }
+      // 使用FormData提交注册数据和照片
+      const formDataRegister = new FormData()
+      formDataRegister.append('icloud_email', formData.icloud_email)
+      formDataRegister.append('icloud_password', formData.icloud_password)
+      formDataRegister.append('nickname', formData.nickname)
+      formDataRegister.append('photo', formData.photo)
 
-      const registerResponse = await authAPI.register(userData)
-
-      // 如果有上传照片，调用上传照片API
-      if (formData.photo) {
-        const formDataPhoto = new FormData()
-        formDataPhoto.append('file', formData.photo)
-
-        await authAPI.uploadPhoto(registerResponse.id, formDataPhoto)
-      }
+      await authAPI.register(formDataRegister)
 
       // 自动登录
       const loginResponse = await authAPI.login({
@@ -108,6 +114,11 @@ function RegisterPage() {
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+            {passwordHint && (
+              <div className="text-sm text-yellow-600 mt-1">
+                {passwordHint}
+              </div>
+            )}
           </div>
 
           <div className="mb-4">
@@ -123,12 +134,13 @@ function RegisterPage() {
           </div>
 
           <div className="mb-6">
-            <label className="block text-gray-700 mb-2">本人照片（可选）</label>
+            <label className="block text-gray-700 mb-2">本人照片（必填）</label>
             <input
               type="file"
               accept="image/*"
               onChange={handleFileChange}
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             />
             {formData.photo && (
               <p className="mt-2 text-sm text-gray-500">已选择: {formData.photo.name}</p>
