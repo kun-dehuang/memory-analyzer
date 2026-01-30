@@ -26,7 +26,8 @@ pwd_context = CryptContext(
     deprecated="auto",
     pbkdf2_sha256__default_rounds=100000
 )
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# 修改OAuth2PasswordBearer配置，使用正确的token端点
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -77,22 +78,32 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """获取当前用户"""
+    print(f"🔐 Token验证 - 收到的token: {token[:20] if token else 'None'}...")
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="无法验证凭据",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        print(f"🔐 Token验证 - SECRET_KEY: {SECRET_KEY[:10]}...")
+        print(f"🔐 Token验证 - ALGORITHM: {ALGORITHM}")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+        print(f"🔐 Token验证 - 解码成功，user_id: {user_id}")
         if user_id is None:
+            print(f"🔐 Token验证 - user_id为空")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"🔐 Token验证 - JWT解码失败: {e}")
         raise credentials_exception
     
     user = await users_collection.find_one({"_id": user_id})
     if user is None:
+        print(f"🔐 Token验证 - 用户不存在: {user_id}")
         raise credentials_exception
+    
+    print(f"🔐 Token验证 - 用户验证成功: {user['icloud_email']}")
     
     # 转换为User模型
     user_dict = {

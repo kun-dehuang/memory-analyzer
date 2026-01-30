@@ -33,14 +33,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => {
     // 确保返回的数据格式正确
+    console.log('API Response - URL:', response.config.url)
+    console.log('API Response - Status:', response.status)
     if (response && response.data) {
       return response.data
     }
     return response
   },
   error => {
+    console.error('API Response Error - URL:', error.config?.url)
+    console.error('API Response Error - Status:', error.response?.status)
+    console.error('API Response Error - Data:', error.response?.data)
     if (error.response && error.response.status === 401) {
       // 未授权，清除token并跳转到登录页
+      console.log('API Response Error - 401错误，清除token并跳转到登录页')
       localStorage.removeItem('token')
       // 使用正确的路径，考虑GitHub Pages的子目录结构
       window.location.href = '/memory-analyzer/login'
