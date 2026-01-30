@@ -98,9 +98,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         print(f"🔐 Token验证 - JWT解码失败: {e}")
         raise credentials_exception
     
-    user = await users_collection.find_one({"_id": user_id})
-    if user is None:
-        print(f"🔐 Token验证 - 用户不存在: {user_id}")
+    # 将字符串形式的user_id转换为ObjectId类型
+    from bson import ObjectId
+    try:
+        user_id_obj = ObjectId(user_id)
+        user = await users_collection.find_one({"_id": user_id_obj})
+        if user is None:
+            print(f"🔐 Token验证 - 用户不存在: {user_id}")
+            raise credentials_exception
+    except Exception as e:
+        print(f"🔐 Token验证 - ObjectId转换失败: {e}")
         raise credentials_exception
     
     print(f"🔐 Token验证 - 用户验证成功: {user['icloud_email']}")
