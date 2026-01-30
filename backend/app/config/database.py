@@ -33,6 +33,9 @@ async def create_indexes():
     # 提示词组集合索引
     await prompt_groups_collection.create_index("name", unique=True)
     
+    # 提示词集合索引
+    await prompts_collection.create_index("prompt_group_id")
+    
     # 记忆记录集合索引
     await memory_records_collection.create_index("user_id")
     await memory_records_collection.create_index("created_at")
