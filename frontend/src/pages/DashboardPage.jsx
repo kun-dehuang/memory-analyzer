@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout } from '../store'
@@ -13,19 +13,8 @@ function DashboardPage () {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // 检查用户是否已登录
-  useEffect(() => {
-    console.log('DashboardPage - 检查认证状态:', { token, user })
-    if (!token) {
-      console.log('DashboardPage - token不存在，跳转到登录页')
-      navigate('/login')
-      return
-    }
-    console.log('DashboardPage - token存在，开始加载提示词组')
-    loadPromptGroups()
-  }, [token, navigate])
-
-  const loadPromptGroups = async () => {
+  // 使用useCallback memoize loadPromptGroups函数
+  const loadPromptGroups = useCallback(async () => {
     try {
       console.log('DashboardPage - 开始加载提示词组')
       const groups = await promptAPI.getPromptGroups()
@@ -39,7 +28,19 @@ function DashboardPage () {
         navigate('/login')
       }
     }
-  }
+  }, [navigate])
+
+  // 检查用户是否已登录
+  useEffect(() => {
+    console.log('DashboardPage - 检查认证状态:', { token, user })
+    if (!token) {
+      console.log('DashboardPage - token不存在，跳转到登录页')
+      navigate('/login')
+      return
+    }
+    console.log('DashboardPage - token存在，开始加载提示词组')
+    loadPromptGroups()
+  }, [token, navigate, loadPromptGroups, user])
 
   const handleLogout = () => {
     dispatch(logout())
