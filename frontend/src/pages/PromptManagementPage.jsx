@@ -2,14 +2,55 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { promptAPI } from '../api/api'
 
-function PromptManagementPage() {
+function PromptManagementPage () {
   const navigate = useNavigate()
   const [promptGroups, setPromptGroups] = useState([])
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showAddGroupModal, setShowAddGroupModal] = useState(false)
-  const [newGroup, setNewGroup] = useState({ name: '', description: '' })
+  const [newGroup, setNewGroup] = useState({
+    name: '',
+    description: '',
+    prompts: [
+      {
+        name: 'Phase 1',
+        content: '',
+        type: 'phase1',
+        description: '记忆分析第一阶段提示词',
+        variables: []
+      },
+      {
+        name: 'Phase 2',
+        content: '',
+        type: 'phase2',
+        description: '记忆分析第二阶段提示词',
+        variables: []
+      }
+    ]
+  })
+
+  const defaultPrompts = {
+    phase1: `你是一位专业的视觉人类学家。请详细描述这批照片中的所有视觉要素，包括：
+1. 人物：描述每个人的外貌特征、表情、姿态、穿着打扮
+2. 场景：描述拍摄地点的环境特征、建筑风格、自然景观
+3. 活动：描述照片中人物正在进行的动作或活动
+4. 物品：描述照片中出现的物品、工具、装饰品等
+5. 氛围：描述照片的整体氛围、光线、色调等
+
+请以客观、细致的方式描述每一张照片，为后续的记忆分析提供丰富的视觉信息。`,
+
+    phase2: `你是一位数字人类学家和心理学专家。现在需要你基于用户的完整相册记录，进行深度的记忆分析和人格画像构建。
+
+请从以下维度进行分析：
+1. 生活轨迹：分析用户的生活轨迹、活动范围、社交圈子
+2. 兴趣爱好：识别用户的兴趣爱好、关注焦点、生活方式
+3. 人格特质：通过照片中的行为表现、社交模式、环境选择等，分析用户的人格特质
+4. 情感状态：分析用户的情感状态、情绪变化、心理需求
+5. 成长历程：通过时间序列的照片，分析用户的成长历程和人生阶段
+
+请以温暖、理解、尊重的语气，为用户呈现一份深度的记忆分析报告，帮助用户更好地理解自己。`
+  }
 
   // 加载提示词组
   useEffect(() => {
@@ -166,7 +207,7 @@ function PromptManagementPage() {
       {/* 添加提示词组模态框 */}
       {showAddGroupModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">新增提示词组</h3>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">名称</label>
@@ -187,6 +228,107 @@ function PromptManagementPage() {
                 rows={3}
               ></textarea>
             </div>
+
+            {/* Phase 1 提示词 */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-gray-700">Phase 1 提示词</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updatedPrompts = [...newGroup.prompts]
+                    updatedPrompts[0].content = defaultPrompts.phase1
+                    updatedPrompts[0].description = '记忆分析第一阶段提示词'
+                    setNewGroup({ ...newGroup, prompts: updatedPrompts })
+                  }}
+                  className="text-sm text-blue-500 hover:text-blue-700"
+                >
+                  使用默认样例
+                </button>
+              </div>
+              <div className="border rounded p-4">
+                <div className="mb-3">
+                  <label className="block text-sm text-gray-600 mb-1">内容</label>
+                  <textarea
+                    value={newGroup.prompts[0].content}
+                    onChange={(e) => {
+                      const updatedPrompts = [...newGroup.prompts]
+                      updatedPrompts[0].content = e.target.value
+                      setNewGroup({ ...newGroup, prompts: updatedPrompts })
+                    }}
+                    className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={6}
+                    placeholder="请输入第一阶段提示词"
+                    required
+                  ></textarea>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-sm text-gray-600 mb-1">描述</label>
+                  <input
+                    type="text"
+                    value={newGroup.prompts[0].description}
+                    onChange={(e) => {
+                      const updatedPrompts = [...newGroup.prompts]
+                      updatedPrompts[0].description = e.target.value
+                      setNewGroup({ ...newGroup, prompts: updatedPrompts })
+                    }}
+                    className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入描述"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Phase 2 提示词 */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-gray-700">Phase 2 提示词</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updatedPrompts = [...newGroup.prompts]
+                    updatedPrompts[1].content = defaultPrompts.phase2
+                    updatedPrompts[1].description = '记忆分析第二阶段提示词'
+                    setNewGroup({ ...newGroup, prompts: updatedPrompts })
+                  }}
+                  className="text-sm text-blue-500 hover:text-blue-700"
+                >
+                  使用默认样例
+                </button>
+              </div>
+              <div className="border rounded p-4">
+                <div className="mb-3">
+                  <label className="block text-sm text-gray-600 mb-1">内容</label>
+                  <textarea
+                    value={newGroup.prompts[1].content}
+                    onChange={(e) => {
+                      const updatedPrompts = [...newGroup.prompts]
+                      updatedPrompts[1].content = e.target.value
+                      setNewGroup({ ...newGroup, prompts: updatedPrompts })
+                    }}
+                    className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={6}
+                    placeholder="请输入第二阶段提示词"
+                    required
+                  ></textarea>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-sm text-gray-600 mb-1">描述</label>
+                  <input
+                    type="text"
+                    value={newGroup.prompts[1].description}
+                    onChange={(e) => {
+                      const updatedPrompts = [...newGroup.prompts]
+                      updatedPrompts[1].description = e.target.value
+                      setNewGroup({ ...newGroup, prompts: updatedPrompts })
+                    }}
+                    className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="请输入描述"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() => setShowAddGroupModal(false)}
