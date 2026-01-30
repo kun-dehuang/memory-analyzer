@@ -43,11 +43,7 @@ export const authAPI = {
   // 登录
   login: (data) => api.post('/auth/login', data),
   // 注册
-  register: (data) => api.post('/auth/register', data, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  }),
+  register: (data) => api.post('/auth/register', data),
   // 获取当前用户信息
   getCurrentUser: () => api.get('/auth/me')
 }
