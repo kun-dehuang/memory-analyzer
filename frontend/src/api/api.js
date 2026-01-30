@@ -48,12 +48,14 @@ export const authAPI = {
   // 登录
   login: (data) => api.post('/auth/login', data),
   // 注册
-  register: (data) => api.post('/auth/register', data, {
-    // 移除默认的Content-Type，让axios自动处理FormData
-    headers: {
-      'Content-Type': undefined
-    }
-  }),
+  register: (data) => {
+    // 创建新的axios实例，避免受默认headers影响
+    const registerApi = axios.create({
+      baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api',
+      timeout: 10000
+    })
+    return registerApi.post('/auth/register', data)
+  },
   // 获取当前用户信息
   getCurrentUser: () => api.get('/auth/me')
 }
