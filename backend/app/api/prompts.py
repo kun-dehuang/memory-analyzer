@@ -91,7 +91,7 @@ async def create_prompt_group(
                 # 确保所有必需的字段都存在
                 if prompt_data["name"] and prompt_data["content"] and prompt_data["type"]:
                     prompt_result = await prompts_collection.insert_one(prompt_data)
-                    prompt_data["_id"] = str(prompt_result.inserted_id)
+                    prompt_data["id"] = str(prompt_result.inserted_id)
                     group_prompts.append(Prompt(**prompt_data))
     
     # 构建返回结果
