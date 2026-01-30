@@ -147,8 +147,7 @@ async def get_prompt_group(
 @router.put("/groups/{group_id}", response_model=PromptGroup)
 async def update_prompt_group(
     group_id: str,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    update_data: dict,
     current_user: User = Depends(get_current_user)
 ):
     """更新提示词组"""
@@ -161,8 +160,8 @@ async def update_prompt_group(
         )
     
     # 检查名称是否已被其他组使用
-    if name and name != existing_group["name"]:
-        duplicate_group = await prompt_groups_collection.find_one({"name": name, "_id": {"$ne": group_id}})
+    if "name" in update_data and update_data["name"] != existing_group["name"]:
+        duplicate_group = await prompt_groups_collection.find_one({"name": update_data["name"], "_id": {"$ne": group_id}})
         if duplicate_group:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -170,11 +169,7 @@ async def update_prompt_group(
             )
     
     # 准备更新数据
-    update_data = {"updated_at": datetime.utcnow()}
-    if name:
-        update_data["name"] = name
-    if description is not None:
-        update_data["description"] = description
+    update_data = {**update_data, "updated_at": datetime.utcnow()}
     
     # 执行更新
     await prompt_groups_collection.update_one(
@@ -273,10 +268,7 @@ async def create_prompt(
 @router.put("/{prompt_id}", response_model=Prompt)
 async def update_prompt(
     prompt_id: str,
-    name: Optional[str] = None,
-    content: Optional[str] = None,
-    description: Optional[str] = None,
-    variables: Optional[List[str]] = None,
+    update_data: dict,
     current_user: User = Depends(get_current_user)
 ):
     """更新提示词"""
@@ -289,15 +281,7 @@ async def update_prompt(
         )
     
     # 准备更新数据
-    update_data = {"updated_at": datetime.utcnow()}
-    if name:
-        update_data["name"] = name
-    if content:
-        update_data["content"] = content
-    if description is not None:
-        update_data["description"] = description
-    if variables is not None:
-        update_data["variables"] = variables
+    update_data = {**update_data, "updated_at": datetime.utcnow()}
     
     # 执行更新
     await prompts_collection.update_one(

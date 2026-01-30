@@ -62,7 +62,7 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
 @router.put("/{user_id}", response_model=User)
 async def update_user(
     user_id: str,
-    nickname: Optional[str] = None,
+    update_data: dict,
     current_user: User = Depends(get_current_user)
 ):
     """更新用户信息"""
@@ -74,9 +74,7 @@ async def update_user(
         )
     
     # 准备更新数据
-    update_data = {"updated_at": datetime.utcnow()}
-    if nickname:
-        update_data["nickname"] = nickname
+    update_data = {**update_data, "updated_at": datetime.utcnow()}
     
     # 执行更新
     result = await users_collection.update_one(

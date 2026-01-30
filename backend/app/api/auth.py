@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -120,10 +120,20 @@ async def register(user_create: UserCreate):
 
 
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """用户登录"""
+    # 尝试从 JSON 数据中获取凭据
+    try:
+        json_data = await request.json()
+        username = json_data.get("username")
+        password = json_data.get("password")
+    except:
+        # 如果不是 JSON 数据，使用表单数据
+        username = form_data.username
+        password = form_data.password
+    
     # 查找用户
-    user = await users_collection.find_one({"icloud_email": form_data.username})
+    user = await users_collection.find_one({"icloud_email": username})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -132,7 +142,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         )
     
     # 验证密码
-    if not verify_password(form_data.password, user["hashed_password"]):
+    if not verify_password(password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="邮箱或密码错误",
