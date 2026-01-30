@@ -14,6 +14,10 @@ class PromptCreate(PromptBase):
     """提示词创建模型"""
     prompt_group_id: str
 
+class PromptCreateWithoutGroupId(PromptBase):
+    """提示词创建模型（不包含prompt_group_id）"""
+    pass
+
 class Prompt(PromptBase):
     """提示词完整模型"""
     id: str
@@ -31,7 +35,7 @@ class PromptGroupBase(BaseModel):
 
 class PromptGroupCreate(PromptGroupBase):
     """提示词组创建模型"""
-    prompts: Optional[List[PromptCreate]] = None
+    prompts: Optional[List[Dict[str, Any]]] = None
 
 class PromptGroup(PromptGroupBase):
     """提示词组完整模型"""

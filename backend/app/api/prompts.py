@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 
-from app.models.prompt import PromptGroup, PromptGroupCreate, Prompt, PromptCreate
+from app.models.prompt import PromptGroup, PromptGroupCreate, Prompt, PromptCreate, PromptCreateWithoutGroupId
 from app.models.user import User
 from app.api.auth import get_current_user
 from app.config.database import prompt_groups_collection, prompts_collection
@@ -75,20 +75,24 @@ async def create_prompt_group(
     group_prompts = []
     if group_create.prompts:
         for prompt_create in group_create.prompts:
-            prompt_data = {
-                "name": prompt_create.name,
-                "content": prompt_create.content,
-                "type": prompt_create.type,
-                "description": prompt_create.description,
-                "variables": prompt_create.variables,
-                "prompt_group_id": group_data["_id"],
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }
-            
-            prompt_result = await prompts_collection.insert_one(prompt_data)
-            prompt_data["_id"] = str(prompt_result.inserted_id)
-            group_prompts.append(Prompt(**prompt_data))
+            # 确保prompt_create是一个字典
+            if isinstance(prompt_create, dict):
+                prompt_data = {
+                    "name": prompt_create.get("name"),
+                    "content": prompt_create.get("content"),
+                    "type": prompt_create.get("type"),
+                    "description": prompt_create.get("description"),
+                    "variables": prompt_create.get("variables"),
+                    "prompt_group_id": group_data["_id"],
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+                
+                # 确保所有必需的字段都存在
+                if prompt_data["name"] and prompt_data["content"] and prompt_data["type"]:
+                    prompt_result = await prompts_collection.insert_one(prompt_data)
+                    prompt_data["_id"] = str(prompt_result.inserted_id)
+                    group_prompts.append(Prompt(**prompt_data))
     
     # 构建返回结果
     group_dict = {
