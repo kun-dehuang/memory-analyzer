@@ -82,12 +82,12 @@ async def create_memory_record(
     
     # 插入数据库
     result = await memory_records_collection.insert_one(record_data)
-    record_data["_id"] = str(result.inserted_id)
+    record_data["id"] = str(result.inserted_id)
     
     # 触发后台分析任务
     background_tasks.add_task(
         execute_memory_analysis,
-        record_data["_id"],
+        record_data["id"],
         record_data["user_id"],
         record_data["prompt_group_id"]
     )
