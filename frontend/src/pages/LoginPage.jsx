@@ -42,18 +42,27 @@ function LoginPage () {
     setError('')
 
     try {
+      console.log('LoginPage - 开始登录，用户名:', formData.icloud_email)
       const response = await authAPI.login({
-        username: formData.icloud_email, // 注意：这里使用username字段，因为后端使用OAuth2PasswordRequestForm
+        username: formData.icloud_email,
         password: formData.icloud_password
       })
+
+      console.log('LoginPage - 登录成功，响应:', response)
+      console.log('LoginPage - token:', response.access_token)
+      console.log('LoginPage - user:', response.user)
 
       dispatch(login({
         user: response.user,
         token: response.access_token
       }))
 
+      console.log('LoginPage - token已保存到Redux和localStorage')
+      console.log('LoginPage - localStorage中的token:', localStorage.getItem('token'))
+
       navigate('/dashboard')
     } catch (err) {
+      console.error('LoginPage - 登录失败:', err)
       setError(err.response?.data?.detail || '登录失败，请检查邮箱和密码')
     } finally {
       setLoading(false)
