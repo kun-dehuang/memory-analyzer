@@ -39,6 +39,15 @@ function RegisterPage () {
   }
 
   const handleFileChange = (e) => {
+    console.log('文件选择事件:', e)
+    console.log('选择的文件:', e.target.files)
+    if (e.target.files && e.target.files[0]) {
+      console.log('文件信息:', {
+        name: e.target.files[0].name,
+        type: e.target.files[0].type,
+        size: e.target.files[0].size
+      })
+    }
     setFormData(prev => ({
       ...prev,
       photo: e.target.files[0]
@@ -85,6 +94,16 @@ function RegisterPage () {
       formDataRegister.append('icloud_password', formData.icloud_password)
       formDataRegister.append('nickname', formData.nickname)
       formDataRegister.append('photo', formData.photo)
+
+      // 验证FormData内容
+      console.log('FormData内容检查:')
+      for (let [key, value] of formDataRegister.entries()) {
+        if (key === 'photo') {
+          console.log(`${key}:`, value.name, value.size, value.type)
+        } else {
+          console.log(`${key}:`, value)
+        }
+      }
 
       console.log('准备提交注册数据')
       await authAPI.register(formDataRegister)
@@ -206,6 +225,7 @@ function RegisterPage () {
             <label className="block text-gray-700 mb-2">本人照片（必填）</label>
             <input
               type="file"
+              name="photo"
               accept="image/*"
               onChange={handleFileChange}
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
