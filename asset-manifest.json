@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/memory-analyzer/static/css/main.63be93a2.css",
+    "main.js": "/memory-analyzer/static/js/main.25471849.js",
+    "index.html": "/memory-analyzer/index.html",
+    "main.63be93a2.css.map": "/memory-analyzer/static/css/main.63be93a2.css.map",
+    "main.25471849.js.map": "/memory-analyzer/static/js/main.25471849.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.63be93a2.css",
+    "static/js/main.25471849.js"
+  ]
+}
