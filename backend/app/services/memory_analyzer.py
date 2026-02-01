@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 from PIL import Image
-import google.genai as genai
+import google.generativeai as genai
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import logging

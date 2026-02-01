@@ -9,7 +9,7 @@ import os
 import json
 from pathlib import Path
 from PIL import Image
-import google.genai as genai
+import google.generativeai as genai
 from dotenv import load_dotenv
 from datetime import datetime
 

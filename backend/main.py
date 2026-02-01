@@ -41,7 +41,7 @@ try:
         "python-dotenv",
         "Pillow",
         "imagehash",
-        "google-genai",
+        "google-generativeai",
         "tqdm",
         "requests",
         "python-dateutil",
