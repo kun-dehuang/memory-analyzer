@@ -213,9 +213,6 @@ class MemoryAnalyzer:
         """执行Phase 1分析"""
         phase1_results = []
         
-        # 初始化Gemini模型
-        model = client.models.generate_content_model('models/gemini-2.5-flash')
-        
         for batch in batches:
             logger.info(f"分析批次: {batch['batch_id']} ({batch['image_count']}张照片)")
             
@@ -299,9 +296,6 @@ class MemoryAnalyzer:
     async def _execute_phase2(self, phase1_results: List[Dict[str, Any]], 
                              prompts: Dict[str, str]) -> Dict[str, Any]:
         """执行Phase 2分析"""
-        # 初始化Gemini模型
-        model = client.models.generate_content_model('models/gemini-2.5-flash')
-        
         # 构建提示词
         phase2_prompt = prompts.get("phase2", self._get_default_phase2_prompt())
         

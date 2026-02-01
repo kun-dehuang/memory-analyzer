@@ -121,9 +121,6 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
     # 加载图片
     image = Image.open(reference_photo_path)
 
-    # 使用 Flash 提取特征
-    model = client.models.generate_content_model('models/gemini-2.5-flash')
-
     # 从数据库获取提示词
     prompt = await get_protagonist_prompt(prompt_group_id)
 
