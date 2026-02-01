@@ -250,9 +250,9 @@ class MemoryAnalyzer:
             
             try:
                 # 生成分析结果
-                response = client.generate_content(
+                response = client.models.generate(
                     model="models/gemini-2.5-flash",
-                    content=content
+                    contents=content
                 )
                 raw_output = response.text.strip()
                 
@@ -316,9 +316,9 @@ class MemoryAnalyzer:
         
         try:
             # 生成分析结果
-            response = client.generate_content(
+            response = client.models.generate(
                 model="models/gemini-2.5-flash",
-                content=content
+                contents=content
             )
             
             # 检查响应是否包含有效的 Part

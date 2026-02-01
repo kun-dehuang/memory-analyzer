@@ -129,9 +129,9 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
 
     try:
         # 生成内容
-        response = client.generate_content(
+        response = client.models.generate(
             model="models/gemini-2.5-flash",
-            content=[prompt, image]
+            contents=[prompt, image]
         )
         raw_output = response.text.strip()
 
