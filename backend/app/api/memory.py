@@ -15,6 +15,8 @@ router = APIRouter()
 @router.get("/records", response_model=List[MemoryRecord])
 async def get_memory_records(
     user_id: Optional[str] = None,
+    page: int = 1,
+    limit: int = 10,
     current_user: User = Depends(get_current_user)
 ):
     """获取记忆分析记录"""
@@ -30,15 +32,19 @@ async def get_memory_records(
     if user_id:
         query["user_id"] = user_id
     
+    # 计算跳过的记录数
+    skip = (page - 1) * limit
+    
     # 查询记录
     records = []
-    async for record in memory_records_collection.find(query).sort("created_at", -1):
+    async for record in memory_records_collection.find(query).sort("created_at", -1).skip(skip).limit(limit):
+        # 构建记录字典，不包含大型字段
         record_dict = {
             "id": str(record["_id"]),
             "user_id": record["user_id"],
             "prompt_group_id": record["prompt_group_id"],
-            "phase1_results": record.get("phase1_results"),
-            "phase2_result": record.get("phase2_result"),
+            "phase1_results": None,  # 不返回 phase1_results
+            "phase2_result": None,   # 不返回 phase2_result
             "status": record["status"],
             "error_message": record.get("error_message"),
             "created_at": record["created_at"],
@@ -48,6 +54,7 @@ async def get_memory_records(
             "time_range": record.get("time_range")
         }
         records.append(MemoryRecord(**record_dict))
+    
     return records
 
 
