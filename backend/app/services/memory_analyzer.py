@@ -33,7 +33,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 配置Gemini API
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 class MemoryAnalyzer:
     """记忆分析器"""
@@ -250,9 +250,9 @@ class MemoryAnalyzer:
             
             try:
                 # 生成分析结果
-                response = client.models.generate(
+                response = genai.generate_content(
                     model="models/gemini-2.5-flash",
-                    contents=content
+                    content=content
                 )
                 raw_output = response.text.strip()
                 
@@ -316,9 +316,9 @@ class MemoryAnalyzer:
         
         try:
             # 生成分析结果
-            response = client.models.generate(
+            response = genai.generate_content(
                 model="models/gemini-2.5-flash",
-                contents=content
+                content=content
             )
             
             # 检查响应是否包含有效的 Part
