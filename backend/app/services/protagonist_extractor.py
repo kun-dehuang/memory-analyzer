@@ -129,10 +129,8 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
 
     try:
         # 生成内容
-        response = genai.generate_content(
-            model="models/gemini-2.5-flash",
-            content=[prompt, image]
-        )
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        response = model.generate_content([prompt, image])
         raw_output = response.text.strip()
 
         # 提取 JSON

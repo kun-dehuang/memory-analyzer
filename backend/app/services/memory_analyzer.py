@@ -250,10 +250,8 @@ class MemoryAnalyzer:
             
             try:
                 # 生成分析结果
-                response = genai.generate_content(
-                    model="models/gemini-2.5-flash",
-                    content=content
-                )
+                model = genai.GenerativeModel('models/gemini-2.5-flash')
+                response = model.generate_content(content)
                 raw_output = response.text.strip()
                 
                 # 构建结果
@@ -316,10 +314,8 @@ class MemoryAnalyzer:
         
         try:
             # 生成分析结果
-            response = genai.generate_content(
-                model="models/gemini-2.5-flash",
-                content=content
-            )
+            model = genai.GenerativeModel('models/gemini-2.5-flash')
+            response = model.generate_content(content)
             
             # 检查响应是否包含有效的 Part
             if not response.candidates or not response.candidates[0].content.parts:
