@@ -213,9 +213,13 @@ async def delete_memory_record(
 async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str):
     """执行记忆分析任务"""
     try:
+        # 将字符串转换为 ObjectId
+        from bson import ObjectId
+        record_object_id = ObjectId(record_id)
+        
         # 更新状态为处理中
         await memory_records_collection.update_one(
-            {"_id": record_id},
+            {"_id": record_object_id},
             {"$set": {
                 "status": "processing",
                 "updated_at": datetime.utcnow()
@@ -239,7 +243,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         
         # 更新分析结果
         await memory_records_collection.update_one(
-            {"_id": record_id},
+            {"_id": record_object_id},
             {"$set": {
                 "status": "completed",
                 "phase1_results": phase1_results,
@@ -253,8 +257,10 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         
     except Exception as e:
         # 更新错误状态
+        from bson import ObjectId
+        record_object_id = ObjectId(record_id)
         await memory_records_collection.update_one(
-            {"_id": record_id},
+            {"_id": record_object_id},
             {"$set": {
                 "status": "failed",
                 "error_message": str(e),
