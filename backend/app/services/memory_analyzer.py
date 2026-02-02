@@ -17,6 +17,7 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
+from pyicloud import PyiCloudService
 import logging
 
 from app.config.database import prompts_collection, photo_metadata_collection
@@ -48,7 +49,9 @@ class MemoryAnalyzer:
     
     async def analyze(self, user_id: str, prompt_group_id: str, 
                      icloud_email: str, icloud_password: str, 
-                     protagonist_features: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str]]:
+                     verification_code: Optional[str] = None, 
+                     session_data: Optional[str] = None, 
+                     protagonist_features: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str], Optional[str]]:
         """
         执行完整的记忆分析流程
         
@@ -57,21 +60,53 @@ class MemoryAnalyzer:
             prompt_group_id: 提示词组ID
             icloud_email: iCloud邮箱
             icloud_password: iCloud密码
+            verification_code: 二次验证码（如果需要）
+            session_data: 会话数据（用于保持登录状态）
             protagonist_features: 主角特征
             
         Returns:
-            (phase1_results, phase2_result, image_count, time_range)
+            (phase1_results, phase2_result, image_count, time_range, session_data)
         """
         logger.info("开始记忆分析流程")
         
         try:
-            # 1. 从iCloud拉取照片
+            # 1. 初始化iCloud服务并处理二次验证
+            logger.info("初始化iCloud服务")
+            api = PyiCloudService(icloud_email, icloud_password)
+            
+            # 处理二次验证
+            if api.requires_2fa:
+                logger.info("需要二次验证")
+                
+                # 如果提供了验证码，验证
+                if verification_code:
+                    logger.info("验证验证码")
+                    result = api.validate_2fa_code(verification_code)
+                    if not result:
+                        raise Exception("验证码错误，请重新输入")
+                    logger.info("验证码验证成功")
+                    # 保存会话
+                    session_data = api.dump_session()
+                else:
+                    # 没有提供验证码，需要前端输入
+                    raise Exception("需要二次验证，请提供验证码")
+            
+            # 2. 从iCloud拉取照片
             logger.info("从iCloud拉取照片")
-            photos = await self.icloud_client.get_photos(
-                email=icloud_email,
-                password=icloud_password,
-                max_count=1000
-            )
+            all_photos = api.photos.all
+            photos = []
+            
+            # 转换为与原来格式兼容的结构
+            for i, photo in enumerate(all_photos[:1000]):  # 限制数量
+                photo_data = {
+                    "id": getattr(photo, 'id', f"photo_{i}"),
+                    "filename": getattr(photo, 'filename', f"photo_{i}"),
+                    "datetime": getattr(photo, 'created', datetime.now()),
+                    "gps_lat": None,  # 需要从照片元数据中提取
+                    "gps_lon": None,  # 需要从照片元数据中提取
+                    "has_gps": False
+                }
+                photos.append(photo_data)
             
             image_count = len(photos)
             logger.info(f"拉取到 {image_count} 张照片")
@@ -79,7 +114,7 @@ class MemoryAnalyzer:
             if image_count == 0:
                 raise Exception("未拉取到任何照片")
             
-            # 2. 过滤照片
+            # 3. 过滤照片
             logger.info("过滤照片")
             filtered_photos = await self.photo_filter.filter(
                 photos=photos,
@@ -92,19 +127,24 @@ class MemoryAnalyzer:
             if filtered_count == 0:
                 raise Exception("过滤后未剩余任何照片")
             
-            # 3. 提取EXIF信息
+            # 4. 提取EXIF信息
             logger.info("提取照片EXIF信息")
-            photo_metadata = await self._extract_metadata(filtered_photos)
+            photo_metadata = await self._extract_metadata(
+                filtered_photos, 
+                icloud_email=icloud_email, 
+                icloud_password=icloud_password,
+                api=api  # 传递已验证的api实例
+            )
             
-            # 4. 按时间分组
+            # 5. 按时间分组
             logger.info("按时间分组")
             batches = self._group_by_time(photo_metadata)
             
-            # 5. 获取提示词
+            # 6. 获取提示词
             logger.info("获取分析提示词")
             prompts = await self._get_prompts(prompt_group_id)
             
-            # 6. 执行Phase 1分析
+            # 7. 执行Phase 1分析
             logger.info("执行Phase 1分析")
             phase1_results = await self._execute_phase1(
                 batches=batches,
@@ -112,26 +152,65 @@ class MemoryAnalyzer:
                 protagonist_features=protagonist_features
             )
             
-            # 7. 执行Phase 2分析
+            # 8. 执行Phase 2分析
             logger.info("执行Phase 2分析")
             phase2_result = await self._execute_phase2(
                 phase1_results=phase1_results,
                 prompts=prompts
             )
             
-            # 8. 计算时间范围
+            # 9. 计算时间范围
             time_range = self._calculate_time_range(photo_metadata)
             
             logger.info("记忆分析流程完成")
-            return phase1_results, phase2_result, filtered_count, time_range
+            return phase1_results, phase2_result, filtered_count, time_range, session_data
             
         except Exception as e:
             logger.error(f"分析失败: {e}")
             raise
     
-    async def _extract_metadata(self, photos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _extract_metadata(self, photos: List[Dict[str, Any]], icloud_email: str, icloud_password: str, api=None) -> List[Dict[str, Any]]:
         """提取照片元数据"""
         metadata_list = []
+        
+        def download_photo_sync(photo_id, email, password, api_instance=None):
+            """同步下载照片"""
+            try:
+                # 使用传入的api实例或创建新实例
+                if api_instance:
+                    api = api_instance
+                    logger.info("使用已验证的iCloud API实例")
+                else:
+                    # 初始化 iCloud 服务
+                    api = PyiCloudService(email, password)
+                    logger.info("创建新的iCloud API实例")
+                    
+                    # 处理二次验证
+                    if api.requires_2fa:
+                        logger.error("需要二次验证，请先在analyze方法中完成验证")
+                        return None
+                
+                # 获取所有照片
+                all_photos = api.photos.all
+                
+                # 查找目标照片
+                for photo in all_photos:
+                    if hasattr(photo, 'id') and photo.id == photo_id:
+                        # 下载照片到内存
+                        photo_bytes = photo.download().content
+                        logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                        return photo_bytes
+                    elif hasattr(photo, 'filename') and photo.filename == photo_id:
+                        # 也可以通过文件名查找
+                        photo_bytes = photo.download().content
+                        logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                        return photo_bytes
+                
+                logger.error(f"未找到照片: {photo_id}")
+                return None
+            except Exception as e:
+                logger.error(f"下载照片失败: {e}")
+                return None
         
         async def process_photo(photo):
             """处理单张照片"""
@@ -149,31 +228,27 @@ class MemoryAnalyzer:
                 }
                 
                 # 下载 iCloud 照片并转换为 Base64
-                icloud_photo_id = photo.get("id")
+                icloud_photo_id = photo.get("id") or photo.get("filename")
                 if icloud_photo_id:
                     logger.info(f"正在下载 iCloud 照片: {icloud_photo_id}")
-                    # 使用 iCloudClient 下载照片
-                    # 注意：这里假设 iCloudClient 已经实现了下载功能
-                    # 实际项目中，需要根据 iCloud API 的返回格式进行调整
                     
                     try:
-                        # 调用 iCloudClient 下载照片
-                        # 注意：这里需要根据实际的 iCloudClient 实现进行调整
-                        # 例如：image_data = await self.icloud_client.download_photo(icloud_photo_id)
-                        # 由于我们没有看到 iCloudClient 的具体实现，这里暂时使用模拟数据
-                        # 但会确保代码结构正确，以便后续替换为真实实现
+                        # 使用线程池执行同步下载
+                        loop = asyncio.get_event_loop()
+                        photo_bytes = await loop.run_in_executor(
+                            self.executor,
+                            download_photo_sync,
+                            icloud_photo_id,
+                            icloud_email,
+                            icloud_password,
+                            api  # 传递已验证的api实例
+                        )
                         
-                        # 注意：在实际项目中，这里应该是真实的照片下载逻辑
-                        # 例如使用 requests 或 aiohttp 从 iCloud API 下载照片
-                        # 这里使用模拟数据只是为了保持代码结构完整
-                        # 实际部署时，需要替换为真实的下载逻辑
-                        
-                        # 模拟下载的图片数据（实际项目中会是真实的图片二进制数据）
-                        # 注意：在实际项目中，需要处理认证和授权
-                        image_data = b"simulated image data"
-                        base64_image = base64.b64encode(image_data).decode('utf-8')
-                        metadata["base64_image"] = base64_image
-                        logger.info(f"照片 {icloud_photo_id} 下载并编码完成")
+                        if photo_bytes:
+                            # 转换为 Base64
+                            base64_image = base64.b64encode(photo_bytes).decode('utf-8')
+                            metadata["base64_image"] = base64_image
+                            logger.info(f"照片 {icloud_photo_id} 编码完成")
                     except Exception as e:
                         logger.error(f"下载 iCloud 照片失败: {e}")
                         # 下载失败时，继续处理，只是没有 base64_image
@@ -271,11 +346,13 @@ class MemoryAnalyzer:
             
             # 添加照片信息和图片数据
             photo_info = []
+            image_count = 0
+            
             for photo in batch["photos"][:10]:  # 限制数量，避免提示词过长
                 photo_info.append(f"- {photo['filename']} (拍摄时间: {photo['datetime'].isoformat()})")
                 
-                # 添加 Base64 编码的图片
-                if photo.get("base64_image"):
+                # 添加 Base64 编码的图片（只添加有效的图片数据）
+                if photo.get("base64_image") and photo["base64_image"] != "c2ltdWxhdGVkIGltYWdlIGRhdGE=":  # 排除模拟数据
                     logger.info(f"添加图片到分析: {photo['filename']}")
                     # 构建图片 Blob
                     # 注意：实际项目中，需要根据图片的实际格式设置正确的 mime_type
@@ -284,6 +361,10 @@ class MemoryAnalyzer:
                         "data": photo["base64_image"]
                     }
                     content.append(image_blob)
+                    image_count += 1
+            
+            # 记录处理的图片数量
+            logger.info(f"批次 {batch['batch_id']} 包含 {image_count} 张有效图片")
             
             if len(batch["photos"]) > 10:
                 photo_info.append(f"... 等 {len(batch['photos']) - 10} 张照片")

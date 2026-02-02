@@ -45,7 +45,8 @@ try:
         "tqdm",
         "requests",
         "python-dateutil",
-        "email-validator"
+        "email-validator",
+        "pyicloud"
     ]
     
     for dep in required_deps:
