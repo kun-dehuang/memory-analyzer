@@ -67,6 +67,12 @@ class MemoryAnalyzer:
         Returns:
             (phase1_results, phase2_result, image_count, time_range, session_data)
         """
+        # 确保logger已定义
+        if 'logger' not in globals():
+            import logging
+            global logger
+            logger = logging.getLogger(__name__)
+        
         logger.info("开始记忆分析流程")
         
         try:
@@ -199,6 +205,12 @@ class MemoryAnalyzer:
     async def _extract_metadata(self, photos: List[Dict[str, Any]], icloud_email: str, icloud_password: str, api=None, photo_map=None) -> List[Dict[str, Any]]:
         """提取照片元数据"""
         metadata_list = []
+        
+        # 确保logger已定义
+        if 'logger' not in globals():
+            import logging
+            global logger
+            logger = logging.getLogger(__name__)
         
         def download_photo_sync(photo_id, email, password, api_instance=None, photo_map_instance=None):
             """同步下载照片"""
@@ -347,6 +359,12 @@ class MemoryAnalyzer:
         """执行Phase 1分析"""
         phase1_results = []
         
+        # 确保logger已定义
+        if 'logger' not in globals():
+            import logging
+            global logger
+            logger = logging.getLogger(__name__)
+        
         for batch in batches:
             logger.info(f"分析批次: {batch['batch_id']} ({batch['image_count']}张照片)")
             
@@ -444,6 +462,12 @@ class MemoryAnalyzer:
     async def _execute_phase2(self, phase1_results: List[Dict[str, Any]], 
                              prompts: Dict[str, str]) -> Dict[str, Any]:
         """执行Phase 2分析"""
+        # 确保logger已定义
+        if 'logger' not in globals():
+            import logging
+            global logger
+            logger = logging.getLogger(__name__)
+        
         # 构建提示词
         phase2_prompt = prompts.get("phase2", self._get_default_phase2_prompt())
         
@@ -527,6 +551,12 @@ class MemoryAnalyzer:
     
     def _parse_phase2_output(self, text: str) -> Dict[str, Any]:
         """解析Phase 2分析结果"""
+        # 确保logger已定义
+        if 'logger' not in globals():
+            import logging
+            global logger
+            logger = logging.getLogger(__name__)
+        
         # 尝试从文本中提取JSON
         try:
             # 查找JSON开始和结束的位置
