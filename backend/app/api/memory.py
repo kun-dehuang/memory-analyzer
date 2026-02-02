@@ -391,6 +391,17 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                     }}
                 )
                 return
+            elif "Invalid email/password combination" in error_message:
+                # 如果是邮箱/密码组合错误，将状态更新为需要密码
+                await memory_records_collection.update_one(
+                    {"_id": record_object_id},
+                    {"$set": {
+                        "status": "needs_password",
+                        "error_message": "iCloud 邮箱或密码不正确，请重新输入",
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
+                return
             else:
                 # 其他错误，继续抛出
                 raise
