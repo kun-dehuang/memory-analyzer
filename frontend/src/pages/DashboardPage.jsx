@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout } from '../store'
-import { memoryAPI, promptAPI } from '../api/api'
+import { memoryAPI, promptAPI, userAPI } from '../api/api'
 
 function DashboardPage () {
   const dispatch = useDispatch()
@@ -12,6 +12,10 @@ function DashboardPage () {
   const [selectedPromptGroup, setSelectedPromptGroup] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [icloudPassword, setIcloudPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   // 使用useCallback memoize loadPromptGroups函数
   const loadPromptGroups = useCallback(async () => {
@@ -45,6 +49,25 @@ function DashboardPage () {
   const handleLogout = () => {
     dispatch(logout())
     navigate('/login')
+  }
+
+  const handleUpdateIcloudPassword = async () => {
+    if (!icloudPassword) {
+      setPasswordError('请输入 iCloud 密码')
+      return
+    }
+
+    try {
+      await userAPI.updateIcloudPassword(user.id, icloudPassword)
+
+      setPasswordSuccess('iCloud 密码更新成功')
+      setPasswordError('')
+      setIcloudPassword('')
+      setTimeout(() => setPasswordSuccess(''), 3000)
+    } catch (err) {
+      setPasswordError('更新 iCloud 密码失败，请重试')
+      console.error('更新 iCloud 密码失败:', err)
+    }
   }
 
   const handleGenerateMemory = async () => {
@@ -81,8 +104,14 @@ function DashboardPage () {
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-blue-600">Memory Analyzer</h1>
             </div>
-            <div className="flex items-center">
-              <span className="mr-4">欢迎，{user?.nickname}</span>
+            <div className="flex items-center space-x-4">
+              <span>欢迎，{user?.nickname}</span>
+              <button
+                onClick={() => setShowPasswordForm(!showPasswordForm)}
+                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+              >
+                {showPasswordForm ? '取消' : '设置 iCloud 密码'}
+              </button>
               <button
                 onClick={handleLogout}
                 className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
@@ -96,6 +125,56 @@ function DashboardPage () {
 
       {/* 主内容 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* iCloud 密码设置表单 */}
+        {showPasswordForm && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-bold mb-6">设置 iCloud 密码</h2>
+
+            {passwordError && (
+              <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+                {passwordError}
+              </div>
+            )}
+
+            {passwordSuccess && (
+              <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+                {passwordSuccess}
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-gray-700 mb-2">iCloud 密码</label>
+              <input
+                type="password"
+                value={icloudPassword}
+                onChange={(e) => setIcloudPassword(e.target.value)}
+                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="请输入您的 iCloud 密码"
+              />
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={handleUpdateIcloudPassword}
+                className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                保存密码
+              </button>
+              <button
+                onClick={() => {
+                  setShowPasswordForm(false)
+                  setIcloudPassword('')
+                  setPasswordError('')
+                  setPasswordSuccess('')
+                }}
+                className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-2xl font-bold mb-6">生成记忆分析</h2>
 

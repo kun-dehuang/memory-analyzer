@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from bson import ObjectId
 
@@ -147,7 +147,7 @@ async def upload_protagonist_photo(
 @router.put("/{user_id}/icloud-password")
 async def update_icloud_password(
     user_id: str,
-    icloud_password: str,
+    data: dict = Body(..., description="更新数据"),
     current_user: User = Depends(get_current_user)
 ):
     """更新用户 iCloud 密码"""
@@ -160,7 +160,7 @@ async def update_icloud_password(
     
     # 准备更新数据
     update_data = {
-        "icloud_password": icloud_password,
+        "icloud_password": data.get("icloud_password"),
         "updated_at": datetime.utcnow()
     }
     

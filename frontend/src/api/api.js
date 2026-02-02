@@ -82,7 +82,9 @@ export const userAPI = {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
-  })
+  }),
+  // 更新iCloud密码
+  updateIcloudPassword: (userId, icloudPassword) => api.put(`/users/${userId}/icloud-password`, { "icloud_password": icloudPassword })
 }
 
 // 提示词相关API
