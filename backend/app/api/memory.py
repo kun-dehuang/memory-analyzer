@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Body
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
@@ -231,8 +231,8 @@ async def provide_icloud_password(
 @router.put("/records/{record_id}/provide-verification")
 async def provide_verification_code(
     record_id: str,
-    verification_code: str,
     background_tasks: BackgroundTasks,
+    verification_code: str = Body(..., embed=True),
     current_user: User = Depends(get_current_user)
 ):
     """提供 iCloud 二次验证码并继续执行分析任务"""

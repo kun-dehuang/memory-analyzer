@@ -43,13 +43,19 @@ function MemoryRecordsPage () {
   }
 
   const handleProvideVerificationCode = async () => {
+    console.log('handleProvideVerificationCode 被调用')
+    console.log('currentRecordId:', currentRecordId)
+    console.log('verificationCode:', verificationCode)
+
     if (!verificationCode) {
       setVerificationError('请输入验证码')
       return
     }
 
     try {
+      console.log('开始调用 provideVerificationCode API')
       await memoryAPI.provideVerificationCode(currentRecordId, verificationCode)
+      console.log('provideVerificationCode API 调用成功')
       setVerificationSuccess('验证码已提交，分析任务已继续执行')
       setVerificationError('')
       setVerificationCode('')
@@ -59,8 +65,8 @@ function MemoryRecordsPage () {
         loadRecords() // 刷新记录列表
       }, 2000)
     } catch (err) {
-      setVerificationError('提交验证码失败，请重试')
       console.error('提交验证码失败:', err)
+      setVerificationError('提交验证码失败，请重试')
     }
   }
 
@@ -180,8 +186,10 @@ function MemoryRecordsPage () {
                       {record.status === 'needs_verification' && (
                         <button
                           onClick={() => {
+                            console.log('点击了输入验证码按钮，record.id:', record.id)
                             setCurrentRecordId(record.id)
                             setShowVerificationForm(true)
+                            console.log('设置状态后 - currentRecordId:', record.id, 'showVerificationForm:', true)
                           }}
                           className="text-purple-600 hover:text-purple-800 mr-2"
                         >
@@ -203,61 +211,64 @@ function MemoryRecordsPage () {
 
           {/* 验证码输入表单 */}
           {showVerificationForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold">输入 iCloud 验证码</h3>
-                    <button
-                      onClick={() => setShowVerificationForm(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {verificationError && (
-                    <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-                      {verificationError}
+            <>
+              {console.log('验证码表单正在渲染，showVerificationForm:', showVerificationForm, 'currentRecordId:', currentRecordId)}
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">输入 iCloud 验证码</h3>
+                      <button
+                        onClick={() => setShowVerificationForm(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                  )}
 
-                  {verificationSuccess && (
-                    <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
-                      {verificationSuccess}
+                    {verificationError && (
+                      <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+                        {verificationError}
+                      </div>
+                    )}
+
+                    {verificationSuccess && (
+                      <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+                        {verificationSuccess}
+                      </div>
+                    )}
+
+                    <div className="mb-6">
+                      <label className="block text-gray-700 mb-2">验证码</label>
+                      <input
+                        type="text"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="请输入 iCloud 发送的验证码"
+                      />
                     </div>
-                  )}
 
-                  <div className="mb-6">
-                    <label className="block text-gray-700 mb-2">验证码</label>
-                    <input
-                      type="text"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="请输入 iCloud 发送的验证码"
-                    />
-                  </div>
-
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={handleProvideVerificationCode}
-                      className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    >
-                      提交验证码
-                    </button>
-                    <button
-                      onClick={() => setShowVerificationForm(false)}
-                      className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
-                    >
-                      取消
-                    </button>
+                    <div className="flex space-x-4">
+                      <button
+                        onClick={handleProvideVerificationCode}
+                        className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      >
+                        提交验证码
+                      </button>
+                      <button
+                        onClick={() => setShowVerificationForm(false)}
+                        className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
+                      >
+                        取消
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* 结果详情弹窗 */}
