@@ -113,13 +113,27 @@ function MemoryRecordsPage () {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold">记忆分析记录</h2>
-            <button
-              onClick={loadRecords}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              disabled={loading}
-            >
-              {loading ? '加载中...' : '刷新'}
-            </button>
+            <div>
+              <button
+                onClick={loadRecords}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2"
+                disabled={loading}
+              >
+                {loading ? '加载中...' : '刷新'}
+              </button>
+              {/* 测试按钮 */}
+              <button
+                onClick={() => {
+                  console.log('点击了测试按钮')
+                  setCurrentRecordId('test-record-id')
+                  setShowVerificationForm(true)
+                  console.log('测试按钮 - 设置状态后')
+                }}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
+                测试验证码表单
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -210,16 +224,21 @@ function MemoryRecordsPage () {
           )}
 
           {/* 验证码输入表单 */}
+          {console.log('渲染验证码表单前 - showVerificationForm:', showVerificationForm)}
           {showVerificationForm && (
             <>
               {console.log('验证码表单正在渲染，showVerificationForm:', showVerificationForm, 'currentRecordId:', currentRecordId)}
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ zIndex: 9999 }}>
                 <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
                   <div className="p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold">输入 iCloud 验证码</h3>
                       <button
-                        onClick={() => setShowVerificationForm(false)}
+                        onClick={() => {
+                          console.log('点击了关闭按钮')
+                          setShowVerificationForm(false)
+                          console.log('关闭按钮 - 设置状态后')
+                        }}
                         className="text-gray-500 hover:text-gray-700"
                       >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +264,10 @@ function MemoryRecordsPage () {
                       <input
                         type="text"
                         value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value)}
+                        onChange={(e) => {
+                          console.log('验证码输入改变:', e.target.value)
+                          setVerificationCode(e.target.value)
+                        }}
                         className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="请输入 iCloud 发送的验证码"
                       />
@@ -259,7 +281,11 @@ function MemoryRecordsPage () {
                         提交验证码
                       </button>
                       <button
-                        onClick={() => setShowVerificationForm(false)}
+                        onClick={() => {
+                          console.log('点击了取消按钮')
+                          setShowVerificationForm(false)
+                          console.log('取消按钮 - 设置状态后')
+                        }}
                         className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
                       >
                         取消
