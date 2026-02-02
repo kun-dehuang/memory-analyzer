@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { memoryAPI } from '../api/api'
 
-function MemoryRecordsPage() {
+function MemoryRecordsPage () {
   const navigate = useNavigate()
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
@@ -180,9 +180,19 @@ function MemoryRecordsPage() {
                                 {result.image_count} 张照片
                               </span>
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-600 mb-3">
                               {result.analysis_summary}
                             </div>
+                            {result.raw_vlm_output && (
+                              <details className="mt-2">
+                                <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
+                                  查看原始输出
+                                </summary>
+                                <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                  {result.raw_vlm_output}
+                                </div>
+                              </details>
+                            )}
                           </div>
                         ))}
                       </div>
