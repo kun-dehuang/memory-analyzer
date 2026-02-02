@@ -73,7 +73,10 @@ class MemoryAnalyzer:
             global logger
             logger = logging.getLogger(__name__)
         
-        logger.info("开始记忆分析流程")
+        # 创建局部logger变量，确保在异常处理中也能使用
+        local_logger = logger
+        
+        local_logger.info("开始记忆分析流程")
         
         try:
             # 检查 iCloud 凭据
@@ -83,17 +86,17 @@ class MemoryAnalyzer:
                 raise Exception("iCloud密码不能为空")
             
             # 1. 初始化iCloud服务并处理二次验证
-            logger.info("初始化iCloud服务")
+            local_logger.info("初始化iCloud服务")
             
             # 尝试使用会话数据恢复会话
             if session_data:
-                logger.info("使用会话数据恢复iCloud会话")
+                local_logger.info("使用会话数据恢复iCloud会话")
                 api = PyiCloudService(icloud_email, icloud_password)
                 try:
                     api.load_session(session_data)
-                    logger.info("会话恢复成功")
+                    local_logger.info("会话恢复成功")
                 except Exception as e:
-                    logger.error(f"会话恢复失败: {e}")
+                    local_logger.error(f"会话恢复失败: {e}")
                     # 会话恢复失败，重新创建服务
                     api = PyiCloudService(icloud_email, icloud_password)
             else:
@@ -102,15 +105,15 @@ class MemoryAnalyzer:
             
             # 处理二次验证
             if api.requires_2fa:
-                logger.info("需要二次验证")
+                local_logger.info("需要二次验证")
                 
                 # 如果提供了验证码，验证
                 if verification_code:
-                    logger.info("验证验证码")
+                    local_logger.info("验证验证码")
                     result = api.validate_2fa_code(verification_code)
                     if not result:
                         raise Exception("验证码错误，请重新输入")
-                    logger.info("验证码验证成功")
+                    local_logger.info("验证码验证成功")
                     # 保存会话
                     session_data = api.dump_session()
                 else:
@@ -118,12 +121,12 @@ class MemoryAnalyzer:
                     raise Exception("需要二次验证，请提供验证码")
             
             # 2. 从iCloud拉取照片
-            logger.info("从iCloud拉取照片")
+            local_logger.info("从iCloud拉取照片")
             try:
                 all_photos = api.photos.all
             except Exception as e:
                 error_message = str(e)
-                logger.error(f"获取照片列表失败: {error_message}")
+                local_logger.error(f"获取照片列表失败: {error_message}")
                 
                 # 检查是否是认证错误
                 if "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "Authentication required" in error_message:
@@ -151,26 +154,26 @@ class MemoryAnalyzer:
                 photo_map[photo_filename] = photo
             
             image_count = len(photos)
-            logger.info(f"拉取到 {image_count} 张照片")
+            local_logger.info(f"拉取到 {image_count} 张照片")
             
             if image_count == 0:
                 raise Exception("未拉取到任何照片")
             
             # 3. 过滤照片
-            logger.info("过滤照片")
+            local_logger.info("过滤照片")
             filtered_photos = await self.photo_filter.filter(
                 photos=photos,
                 user_id=user_id
             )
             
             filtered_count = len(filtered_photos)
-            logger.info(f"过滤后剩余 {filtered_count} 张照片")
+            local_logger.info(f"过滤后剩余 {filtered_count} 张照片")
             
             if filtered_count == 0:
                 raise Exception("过滤后未剩余任何照片")
             
             # 4. 提取EXIF信息
-            logger.info("提取照片EXIF信息")
+            local_logger.info("提取照片EXIF信息")
             photo_metadata = await self._extract_metadata(
                 filtered_photos, 
                 icloud_email=icloud_email, 
@@ -180,15 +183,15 @@ class MemoryAnalyzer:
             )
             
             # 5. 按时间分组
-            logger.info("按时间分组")
+            local_logger.info("按时间分组")
             batches = self._group_by_time(photo_metadata)
             
             # 6. 获取提示词
-            logger.info("获取分析提示词")
+            local_logger.info("获取分析提示词")
             prompts = await self._get_prompts(prompt_group_id)
             
             # 7. 执行Phase 1分析
-            logger.info("执行Phase 1分析")
+            local_logger.info("执行Phase 1分析")
             phase1_results = await self._execute_phase1(
                 batches=batches,
                 prompts=prompts,
@@ -196,7 +199,7 @@ class MemoryAnalyzer:
             )
             
             # 8. 执行Phase 2分析
-            logger.info("执行Phase 2分析")
+            local_logger.info("执行Phase 2分析")
             phase2_result = await self._execute_phase2(
                 phase1_results=phase1_results,
                 prompts=prompts
@@ -205,11 +208,11 @@ class MemoryAnalyzer:
             # 9. 计算时间范围
             time_range = self._calculate_time_range(photo_metadata)
             
-            logger.info("记忆分析流程完成")
+            local_logger.info("记忆分析流程完成")
             return phase1_results, phase2_result, filtered_count, time_range, session_data
             
         except Exception as e:
-            logger.error(f"分析失败: {e}")
+            local_logger.error(f"分析失败: {e}")
             raise
     
     async def _extract_metadata(self, photos: List[Dict[str, Any]], icloud_email: str, icloud_password: str, api=None, photo_map=None) -> List[Dict[str, Any]]:
@@ -378,8 +381,11 @@ class MemoryAnalyzer:
             global logger
             logger = logging.getLogger(__name__)
         
+        # 创建局部logger变量，确保在异常处理中也能使用
+        local_logger = logger
+        
         for batch in batches:
-            logger.info(f"分析批次: {batch['batch_id']} ({batch['image_count']}张照片)")
+            local_logger.info(f"分析批次: {batch['batch_id']} ({batch['image_count']}张照片)")
             
             # 构建提示词
             phase1_prompt = prompts.get("phase1", self._get_default_phase1_prompt())
@@ -410,7 +416,7 @@ class MemoryAnalyzer:
                 
                 # 添加 Base64 编码的图片（只添加有效的图片数据）
                 if photo.get("base64_image") and photo["base64_image"] != "c2ltdWxhdGVkIGltYWdlIGRhdGE=":  # 排除模拟数据
-                    logger.info(f"添加图片到分析: {photo['filename']}")
+                    local_logger.info(f"添加图片到分析: {photo['filename']}")
                     # 构建图片 Blob
                     # 注意：实际项目中，需要根据图片的实际格式设置正确的 mime_type
                     image_blob = {
@@ -421,7 +427,7 @@ class MemoryAnalyzer:
                     image_count += 1
             
             # 记录处理的图片数量
-            logger.info(f"批次 {batch['batch_id']} 包含 {image_count} 张有效图片")
+            local_logger.info(f"批次 {batch['batch_id']} 包含 {image_count} 张有效图片")
             
             if len(batch["photos"]) > 10:
                 photo_info.append(f"... 等 {len(batch['photos']) - 10} 张照片")
@@ -448,10 +454,10 @@ class MemoryAnalyzer:
                     "analysis_summary": self._extract_summary(raw_output)
                 }
                 
-                logger.info(f"批次 {batch['batch_id']} 分析完成")
+                local_logger.info(f"批次 {batch['batch_id']} 分析完成")
                 
             except Exception as e:
-                logger.error(f"批次 {batch['batch_id']} 分析失败: {e}")
+                local_logger.error(f"批次 {batch['batch_id']} 分析失败: {e}")
                 import traceback
                 traceback.print_exc()
                 
@@ -480,6 +486,9 @@ class MemoryAnalyzer:
             import logging
             global logger
             logger = logging.getLogger(__name__)
+        
+        # 创建局部logger变量，确保在异常处理中也能使用
+        local_logger = logger
         
         # 构建提示词
         phase2_prompt = prompts.get("phase2", self._get_default_phase2_prompt())
@@ -513,10 +522,10 @@ class MemoryAnalyzer:
             # 解析分析结果
             result = self._parse_phase2_output(raw_output)
             
-            logger.info("Phase 2 分析完成")
+            local_logger.info("Phase 2 分析完成")
             
         except Exception as e:
-            logger.error(f"Phase 2 分析失败: {e}")
+            local_logger.error(f"Phase 2 分析失败: {e}")
             import traceback
             traceback.print_exc()
             
@@ -570,6 +579,9 @@ class MemoryAnalyzer:
             global logger
             logger = logging.getLogger(__name__)
         
+        # 创建局部logger变量，确保在异常处理中也能使用
+        local_logger = logger
+        
         # 尝试从文本中提取JSON
         try:
             # 查找JSON开始和结束的位置
@@ -588,7 +600,7 @@ class MemoryAnalyzer:
             return result
         except Exception as e:
             # 如果解析失败，使用简化的结果
-            logger.warning(f"解析Phase 2输出失败: {e}")
+            local_logger.warning(f"解析Phase 2输出失败: {e}")
             
             result = {
                 "meta": {

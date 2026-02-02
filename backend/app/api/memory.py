@@ -306,6 +306,12 @@ async def delete_memory_record(
 
 async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str, icloud_password: str, verification_code: str = None):
     """执行记忆分析任务"""
+    # 确保logger已定义
+    if 'logger' not in globals():
+        import logging
+        global logger
+        logger = logging.getLogger(__name__)
+    
     try:
         # 将字符串转换为 ObjectId
         from bson import ObjectId
@@ -374,7 +380,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
             logger.error(f"分析异常: {error_message}")
             
             # 检查是否需要二次验证或认证错误
-            if "需要二次验证" in error_message or "Authentication required" in error_message or "Missing X-APPLE-WEBAUTH-TOKEN" in error_message:
+            if "需要二次验证" in error_message or "Authentication required" in error_message or "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "验证码错误" in error_message:
                 # 如果需要二次验证或认证错误，将状态更新为需要验证
                 await memory_records_collection.update_one(
                     {"_id": record_object_id},
