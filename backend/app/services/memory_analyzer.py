@@ -70,6 +70,12 @@ class MemoryAnalyzer:
         logger.info("开始记忆分析流程")
         
         try:
+            # 检查 iCloud 凭据
+            if not icloud_email:
+                raise Exception("iCloud邮箱不能为空")
+            if not icloud_password:
+                raise Exception("iCloud密码不能为空")
+            
             # 1. 初始化iCloud服务并处理二次验证
             logger.info("初始化iCloud服务")
             api = PyiCloudService(icloud_email, icloud_password)

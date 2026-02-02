@@ -231,13 +231,22 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         if not user:
             raise Exception("用户不存在")
         
+        # 检查 iCloud 凭据
+        icloud_email = user.get("icloud_email")
+        icloud_password = user.get("icloud_password")
+        
+        if not icloud_email:
+            raise Exception("用户未设置 iCloud 邮箱")
+        if not icloud_password:
+            raise Exception("用户未设置 iCloud 密码")
+        
         # 执行分析
         analyzer = MemoryAnalyzer()
-        phase1_results, phase2_result, image_count, time_range = await analyzer.analyze(
+        phase1_results, phase2_result, image_count, time_range, session_data = await analyzer.analyze(
             user_id=user_id,
             prompt_group_id=prompt_group_id,
-            icloud_email=user["icloud_email"],
-            icloud_password=user.get("icloud_password"),  # 注意：这里需要安全处理
+            icloud_email=icloud_email,
+            icloud_password=icloud_password,
             protagonist_features=user.get("protagonist_features")
         )
         
