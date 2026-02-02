@@ -88,60 +88,73 @@ class MemoryAnalyzer:
             # 1. 初始化iCloud服务并处理二次验证
             local_logger.info("初始化iCloud服务")
             
-            # 尝试使用会话数据恢复会话
-            if session_data:
-                local_logger.info("使用会话数据恢复iCloud会话")
-                api = PyiCloudService(icloud_email, icloud_password)
-                try:
-                    api.load_session(session_data)
-                    local_logger.info("会话恢复成功")
-                except Exception as e:
-                    local_logger.error(f"会话恢复失败: {e}")
-                    # 会话恢复失败，重新创建服务
-                    api = PyiCloudService(icloud_email, icloud_password)
-            else:
-                # 没有会话数据，创建新的服务
-                api = PyiCloudService(icloud_email, icloud_password)
+            # 先创建基础服务实例
+            api = PyiCloudService(icloud_email, icloud_password)
+            local_logger.info(f"服务实例创建成功，requires_2fa: {api.requires_2fa}")
             
-            # 处理二次验证
-            if api.requires_2fa:
-                local_logger.info("需要二次验证")
+            # 检查是否提供了验证码
+            if verification_code:
+                local_logger.info("提供了验证码，验证验证码")
+                # 验证验证码
+                result = api.validate_2fa_code(verification_code)
+                local_logger.info(f"验证码验证结果: {result}")
+                if not result:
+                    raise Exception("验证码错误，请重新输入")
+                local_logger.info("验证码验证成功")
                 
-                # 如果提供了验证码，验证
-                if verification_code:
-                    local_logger.info("验证验证码")
-                    result = api.validate_2fa_code(verification_code)
-                    if not result:
-                        raise Exception("验证码错误，请重新输入")
-                    local_logger.info("验证码验证成功")
-                    # 保存会话
-                    session_data = api.dump_session()
+                # 验证成功后，直接测试访问照片服务对象，确保认证完全完成
+                # 因为我们的主要目标是获取照片，所以直接测试照片服务对象更符合实际需求
+                local_logger.info("验证成功后，测试获取照片服务对象")
+                try:
+                    # 先获取照片服务对象，这会触发认证检查
+                    photos_service = api.photos
+                    local_logger.info("验证成功后，获取照片服务对象成功")
                     
-                    # 验证成功后，再次检查认证状态
-                    if api.requires_2fa:
-                        local_logger.error("验证码验证成功后，仍然需要二次验证")
-                        raise Exception("验证码验证成功后，仍然需要二次验证")
-                    
-                    # 验证成功后，测试获取照片列表，确保认证状态正确
-                    try:
-                        test_photos = api.photos.all
-                        local_logger.info("验证成功后，测试获取照片列表成功")
-                    except Exception as e:
-                        local_logger.error(f"验证成功后，测试获取照片列表失败: {e}")
-                        # 测试失败，可能是会话问题，重新创建服务
-                        api = PyiCloudService(icloud_email, icloud_password)
-                        # 重新验证验证码
-                        result = api.validate_2fa_code(verification_code)
-                        if not result:
-                            raise Exception("验证码错误，请重新输入")
-                        session_data = api.dump_session()
-                else:
-                    # 没有提供验证码，需要前端输入
-                    raise Exception("需要二次验证，请提供验证码")
+                    # 再尝试获取一张照片，确保认证状态完全正确
+                    test_photo = next(iter(photos_service.all), None)
+                    if test_photo:
+                        local_logger.info("验证成功后，测试获取照片成功")
+                    else:
+                        local_logger.info("验证成功后，测试获取照片列表为空")
+                except Exception as e:
+                    local_logger.error(f"验证成功后，测试照片访问失败: {e}")
+                    # 测试失败，可能是认证状态问题，直接抛出异常
+                    raise Exception(f"验证成功后，无法访问照片: {e}")
+            else:
+                # 没有提供验证码，尝试访问照片服务来检测是否需要二次验证
+                local_logger.info("没有提供验证码，测试访问照片服务来检测是否需要二次验证")
+                try:
+                    # 尝试获取照片服务对象，这会触发认证检查
+                    photos_service = api.photos
+                    local_logger.info("访问照片服务成功，不需要二次验证")
+                except Exception as e:
+                    error_message = str(e)
+                    local_logger.error(f"访问照片服务失败: {error_message}")
+                    # 检查是否是认证错误
+                    if "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "Authentication required" in error_message:
+                        # 认证错误，需要二次验证
+                        raise Exception("需要二次验证，请提供验证码")
+                    else:
+                        # 其他错误，直接抛出
+                        raise
             
             # 2. 从iCloud拉取照片
             local_logger.info("从iCloud拉取照片")
+            
+            # 尝试获取照片列表
             try:
+                local_logger.info("尝试获取照片列表")
+                # 直接获取照片列表，因为在验证成功后已经测试过照片服务对象
+                all_photos = api.photos.all
+                local_logger.info("获取照片列表成功")
+                
+                # 测试照片列表是否可访问，不消耗生成器
+                test_photo = next(iter(all_photos), None)
+                if test_photo:
+                    local_logger.info("照片列表可正常访问")
+                else:
+                    local_logger.info("照片列表为空")
+                # 重新获取照片列表，因为之前的生成器已经被消耗
                 all_photos = api.photos.all
             except Exception as e:
                 error_message = str(e)
@@ -149,8 +162,11 @@ class MemoryAnalyzer:
                 
                 # 检查是否是认证错误
                 if "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "Authentication required" in error_message:
+                    # 认证错误，抛出需要二次验证的异常，确保消息包含"需要二次验证"关键词
+                    # 这样memory.py中的错误处理代码就能正确识别并更新记录状态为needs_verification
                     raise Exception("需要二次验证，请提供验证码")
                 else:
+                    # 其他错误，直接抛出
                     raise
             photos = []
             photo_map = {}
@@ -247,7 +263,16 @@ class MemoryAnalyzer:
         # 创建局部logger变量，供嵌套函数使用
         local_logger = logger
         
-        def download_photo_sync(photo_id, email, password, api_instance=None, photo_map_instance=None):
+        # 获取会话数据
+        session_data = None
+        if api:
+            try:
+                session_data = api.dump_session()
+                local_logger.info("获取会话数据成功")
+            except Exception as e:
+                local_logger.error(f"获取会话数据失败: {e}")
+        
+        def download_photo_sync(photo_id, email, password, session_data=None, photo_map_instance=None):
             """同步下载照片"""
             try:
                 # 先尝试从 photo_map 中获取照片对象
@@ -258,25 +283,44 @@ class MemoryAnalyzer:
                     local_logger.info(f"从缓存中获取照片 {photo_id} 并下载成功，大小: {len(photo_bytes)} bytes")
                     return photo_bytes
                 
-                # 如果没有找到，且有api实例，尝试使用api查找
-                elif api_instance:
-                    api = api_instance
-                    local_logger.info(f"从API中查找照片: {photo_id}")
-                    # 获取所有照片
-                    all_photos = api.photos.all
-                    
-                    # 查找目标照片
-                    for photo in all_photos:
-                        if hasattr(photo, 'id') and photo.id == photo_id:
-                            # 下载照片到内存
-                            photo_bytes = photo.download().content
-                            local_logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
-                            return photo_bytes
-                        elif hasattr(photo, 'filename') and photo.filename == photo_id:
-                            # 也可以通过文件名查找
-                            photo_bytes = photo.download().content
-                            local_logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
-                            return photo_bytes
+                # 如果没有找到，创建新的api实例
+                local_logger.info(f"从API中查找照片: {photo_id}")
+                # 创建新的api实例
+                api = None
+                if session_data:
+                    # 使用会话数据创建api实例
+                    try:
+                        api = PyiCloudService(email)
+                        api.load_session(session_data)
+                        local_logger.info("使用会话数据创建api实例成功")
+                    except Exception as e:
+                        local_logger.error(f"使用会话数据创建api实例失败: {e}")
+                        # 会话数据失败，使用密码创建
+                        api = PyiCloudService(email, password)
+                else:
+                    # 使用密码创建api实例
+                    api = PyiCloudService(email, password)
+                
+                # 检查是否需要二次验证
+                if api.requires_2fa:
+                    local_logger.error("api实例需要二次验证")
+                    return None
+                
+                # 获取所有照片
+                all_photos = api.photos.all
+                
+                # 查找目标照片
+                for photo in all_photos:
+                    if hasattr(photo, 'id') and photo.id == photo_id:
+                        # 下载照片到内存
+                        photo_bytes = photo.download().content
+                        local_logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                        return photo_bytes
+                    elif hasattr(photo, 'filename') and photo.filename == photo_id:
+                        # 也可以通过文件名查找
+                        photo_bytes = photo.download().content
+                        local_logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                        return photo_bytes
                 
                 local_logger.error(f"未找到照片: {photo_id}")
                 return None
@@ -313,7 +357,7 @@ class MemoryAnalyzer:
                             icloud_photo_id,
                             icloud_email,
                             icloud_password,
-                            api,  # 传递已验证的api实例
+                            session_data,  # 传递会话数据
                             photo_map  # 传递照片映射
                         )
                         
@@ -331,13 +375,14 @@ class MemoryAnalyzer:
                 local_logger.error(f"处理照片失败: {e}")
                 return None
         
-        # 并发处理
-        tasks = [process_photo(photo) for photo in photos]
-        results = await asyncio.gather(*tasks)
+        # 顺序处理，避免并发访问api实例
+        local_logger.info("开始顺序处理照片")
+        for photo in photos:
+            result = await process_photo(photo)
+            if result:
+                metadata_list.append(result)
         
-        # 过滤None值
-        metadata_list = [result for result in results if result]
-        
+        local_logger.info(f"照片处理完成，共处理 {len(metadata_list)} 张照片")
         return metadata_list
     
     def _group_by_time(self, photos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
