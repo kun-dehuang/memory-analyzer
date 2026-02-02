@@ -228,6 +228,56 @@ async def provide_icloud_password(
     return {"message": "密码已提供，分析任务已继续执行"}
 
 
+@router.put("/records/{record_id}/provide-verification")
+async def provide_verification_code(
+    record_id: str,
+    verification_code: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """提供 iCloud 二次验证码并继续执行分析任务"""
+    record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="记忆记录不存在"
+        )
+    
+    # 检查权限
+    if record["user_id"] != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权操作其他用户的记忆记录"
+        )
+    
+    # 检查状态
+    if record.get("status") != "needs_verification":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该记录不需要提供验证码"
+        )
+    
+    # 获取用户信息
+    user = await users_collection.find_one({"_id": ObjectId(record["user_id"])})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    # 触发后台分析任务，传递验证码
+    background_tasks.add_task(
+        execute_memory_analysis,
+        record_id,
+        record["user_id"],
+        record["prompt_group_id"],
+        user.get("icloud_password"),
+        verification_code
+    )
+    
+    return {"message": "验证码已提供，分析任务已继续执行"}
+
+
 @router.delete("/records/{record_id}")
 async def delete_memory_record(
     record_id: str,
@@ -254,7 +304,7 @@ async def delete_memory_record(
     return {"message": "记忆记录删除成功"}
 
 
-async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str, icloud_password: str):
+async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str, icloud_password: str, verification_code: str = None):
     """执行记忆分析任务"""
     try:
         # 将字符串转换为 ObjectId
@@ -298,13 +348,30 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         
         # 执行分析
         analyzer = MemoryAnalyzer()
-        phase1_results, phase2_result, image_count, time_range, session_data = await analyzer.analyze(
-            user_id=user_id,
-            prompt_group_id=prompt_group_id,
-            icloud_email=icloud_email,
-            icloud_password=final_icloud_password,
-            protagonist_features=user.get("protagonist_features")
-        )
+        try:
+            phase1_results, phase2_result, image_count, time_range, session_data = await analyzer.analyze(
+                user_id=user_id,
+                prompt_group_id=prompt_group_id,
+                icloud_email=icloud_email,
+                icloud_password=final_icloud_password,
+                verification_code=verification_code,
+                protagonist_features=user.get("protagonist_features")
+            )
+        except Exception as e:
+            if "需要二次验证" in str(e):
+                # 如果需要二次验证，将状态更新为需要验证
+                await memory_records_collection.update_one(
+                    {"_id": record_object_id},
+                    {"$set": {
+                        "status": "needs_verification",
+                        "error_message": "需要 iCloud 二次验证",
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
+                return
+            else:
+                # 其他错误，继续抛出
+                raise
         
         # 打印调试信息
         print(f"分析完成 - phase1_results: {type(phase1_results)}, length: {len(phase1_results) if phase1_results else 0}")

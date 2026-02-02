@@ -116,7 +116,11 @@ export const memoryAPI = {
   // 获取记忆记录详情
   getMemoryRecord: (recordId) => api.get(`/memory/records/${recordId}`),
   // 重新分析记忆记录
-  reanalyzeMemoryRecord: (recordId) => api.put(`/memory/records/${recordId}/reanalyze`),
+  reanalyzeMemoryRecord: (recordId, icloudPassword) => api.put(`/memory/records/${recordId}/reanalyze`, { icloud_password: icloudPassword }),
+  // 提供iCloud密码
+  providePassword: (recordId, icloudPassword) => api.put(`/memory/records/${recordId}/provide-password`, { icloud_password: icloudPassword }),
+  // 提供验证码
+  provideVerificationCode: (recordId, verificationCode) => api.put(`/memory/records/${recordId}/provide-verification`, { verification_code: verificationCode }),
   // 删除记忆记录
   deleteMemoryRecord: (recordId) => api.delete(`/memory/records/${recordId}`)
 }

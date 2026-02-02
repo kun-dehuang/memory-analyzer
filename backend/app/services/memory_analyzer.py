@@ -101,18 +101,24 @@ class MemoryAnalyzer:
             logger.info("从iCloud拉取照片")
             all_photos = api.photos.all
             photos = []
+            photo_map = {}
             
             # 转换为与原来格式兼容的结构
             for i, photo in enumerate(all_photos[:1000]):  # 限制数量
+                photo_id = getattr(photo, 'id', f"photo_{i}")
+                photo_filename = getattr(photo, 'filename', f"photo_{i}")
                 photo_data = {
-                    "id": getattr(photo, 'id', f"photo_{i}"),
-                    "filename": getattr(photo, 'filename', f"photo_{i}"),
+                    "id": photo_id,
+                    "filename": photo_filename,
                     "datetime": getattr(photo, 'created', datetime.now()),
                     "gps_lat": None,  # 需要从照片元数据中提取
                     "gps_lon": None,  # 需要从照片元数据中提取
                     "has_gps": False
                 }
                 photos.append(photo_data)
+                # 保存照片对象到映射中，以便后续使用
+                photo_map[photo_id] = photo
+                photo_map[photo_filename] = photo
             
             image_count = len(photos)
             logger.info(f"拉取到 {image_count} 张照片")
@@ -139,7 +145,8 @@ class MemoryAnalyzer:
                 filtered_photos, 
                 icloud_email=icloud_email, 
                 icloud_password=icloud_password,
-                api=api  # 传递已验证的api实例
+                api=api,  # 传递已验证的api实例
+                photo_map=photo_map  # 传递照片映射，避免重复API调用
             )
             
             # 5. 按时间分组
@@ -175,42 +182,40 @@ class MemoryAnalyzer:
             logger.error(f"分析失败: {e}")
             raise
     
-    async def _extract_metadata(self, photos: List[Dict[str, Any]], icloud_email: str, icloud_password: str, api=None) -> List[Dict[str, Any]]:
+    async def _extract_metadata(self, photos: List[Dict[str, Any]], icloud_email: str, icloud_password: str, api=None, photo_map=None) -> List[Dict[str, Any]]:
         """提取照片元数据"""
         metadata_list = []
         
-        def download_photo_sync(photo_id, email, password, api_instance=None):
+        def download_photo_sync(photo_id, email, password, api_instance=None, photo_map_instance=None):
             """同步下载照片"""
             try:
-                # 使用传入的api实例或创建新实例
-                if api_instance:
+                # 先尝试从 photo_map 中获取照片对象
+                if photo_map_instance and photo_id in photo_map_instance:
+                    photo = photo_map_instance[photo_id]
+                    # 下载照片到内存
+                    photo_bytes = photo.download().content
+                    logger.info(f"从缓存中获取照片 {photo_id} 并下载成功，大小: {len(photo_bytes)} bytes")
+                    return photo_bytes
+                
+                # 如果没有找到，且有api实例，尝试使用api查找
+                elif api_instance:
                     api = api_instance
-                    logger.info("使用已验证的iCloud API实例")
-                else:
-                    # 初始化 iCloud 服务
-                    api = PyiCloudService(email, password)
-                    logger.info("创建新的iCloud API实例")
+                    logger.info(f"从API中查找照片: {photo_id}")
+                    # 获取所有照片
+                    all_photos = api.photos.all
                     
-                    # 处理二次验证
-                    if api.requires_2fa:
-                        logger.error("需要二次验证，请先在analyze方法中完成验证")
-                        return None
-                
-                # 获取所有照片
-                all_photos = api.photos.all
-                
-                # 查找目标照片
-                for photo in all_photos:
-                    if hasattr(photo, 'id') and photo.id == photo_id:
-                        # 下载照片到内存
-                        photo_bytes = photo.download().content
-                        logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
-                        return photo_bytes
-                    elif hasattr(photo, 'filename') and photo.filename == photo_id:
-                        # 也可以通过文件名查找
-                        photo_bytes = photo.download().content
-                        logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
-                        return photo_bytes
+                    # 查找目标照片
+                    for photo in all_photos:
+                        if hasattr(photo, 'id') and photo.id == photo_id:
+                            # 下载照片到内存
+                            photo_bytes = photo.download().content
+                            logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                            return photo_bytes
+                        elif hasattr(photo, 'filename') and photo.filename == photo_id:
+                            # 也可以通过文件名查找
+                            photo_bytes = photo.download().content
+                            logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                            return photo_bytes
                 
                 logger.error(f"未找到照片: {photo_id}")
                 return None
@@ -247,7 +252,8 @@ class MemoryAnalyzer:
                             icloud_photo_id,
                             icloud_email,
                             icloud_password,
-                            api  # 传递已验证的api实例
+                            api,  # 传递已验证的api实例
+                            photo_map  # 传递照片映射
                         )
                         
                         if photo_bytes:
