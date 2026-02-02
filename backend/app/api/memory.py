@@ -96,7 +96,8 @@ async def create_memory_record(
         execute_memory_analysis,
         record_data["id"],
         record_data["user_id"],
-        record_data["prompt_group_id"]
+        record_data["prompt_group_id"],
+        record_create.icloud_password or ""  # 传递 iCloud 密码，确保不为 None
     )
     
     return MemoryRecord(**record_data)
@@ -143,6 +144,7 @@ async def get_memory_record(
 @router.put("/records/{record_id}/reanalyze")
 async def reanalyze_memory_record(
     record_id: str,
+    icloud_password: str,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
@@ -178,10 +180,52 @@ async def reanalyze_memory_record(
         execute_memory_analysis,
         record_id,
         record["user_id"],
-        record["prompt_group_id"]
+        record["prompt_group_id"],
+        icloud_password  # 传递 iCloud 密码
     )
     
     return {"message": "重新分析任务已开始"}
+
+
+@router.put("/records/{record_id}/provide-password")
+async def provide_icloud_password(
+    record_id: str,
+    icloud_password: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """提供 iCloud 密码并继续执行分析任务"""
+    record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="记忆记录不存在"
+        )
+    
+    # 检查权限
+    if record["user_id"] != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权操作其他用户的记忆记录"
+        )
+    
+    # 检查状态
+    if record.get("status") != "needs_password":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该记录不需要提供密码"
+        )
+    
+    # 触发后台分析任务
+    background_tasks.add_task(
+        execute_memory_analysis,
+        record_id,
+        record["user_id"],
+        record["prompt_group_id"],
+        icloud_password
+    )
+    
+    return {"message": "密码已提供，分析任务已继续执行"}
 
 
 @router.delete("/records/{record_id}")
@@ -210,7 +254,7 @@ async def delete_memory_record(
     return {"message": "记忆记录删除成功"}
 
 
-async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str):
+async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str, icloud_password: str):
     """执行记忆分析任务"""
     try:
         # 将字符串转换为 ObjectId
@@ -233,12 +277,20 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         
         # 检查 iCloud 凭据
         icloud_email = user.get("icloud_email")
-        icloud_password = user.get("icloud_password")
         
         if not icloud_email:
             raise Exception("用户未设置 iCloud 邮箱")
         if not icloud_password:
-            raise Exception("用户未设置 iCloud 密码")
+            # 如果没有提供密码，将状态更新为需要密码
+            await memory_records_collection.update_one(
+                {"_id": record_object_id},
+                {"$set": {
+                    "status": "needs_password",
+                    "error_message": "需要提供 iCloud 密码才能执行分析",
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            return
         
         # 执行分析
         analyzer = MemoryAnalyzer()

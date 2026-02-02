@@ -17,6 +17,7 @@ class MemoryRecordCreate(MemoryRecordBase):
     phase1_results: Optional[List[Dict[str, Any]]] = None
     phase2_result: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
+    icloud_password: Optional[str] = None
 
 class MemoryRecord(MemoryRecordBase):
     """记忆记录完整模型"""
