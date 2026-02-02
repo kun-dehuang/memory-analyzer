@@ -277,11 +277,15 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         
         # 检查 iCloud 凭据
         icloud_email = user.get("icloud_email")
+        stored_icloud_password = user.get("icloud_password")
+        
+        # 优先使用传递过来的密码，如果没有则使用存储的密码
+        final_icloud_password = icloud_password or stored_icloud_password
         
         if not icloud_email:
             raise Exception("用户未设置 iCloud 邮箱")
-        if not icloud_password:
-            # 如果没有提供密码，将状态更新为需要密码
+        if not final_icloud_password:
+            # 如果没有提供密码且存储中也没有，将状态更新为需要密码
             await memory_records_collection.update_one(
                 {"_id": record_object_id},
                 {"$set": {
@@ -298,7 +302,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
             user_id=user_id,
             prompt_group_id=prompt_group_id,
             icloud_email=icloud_email,
-            icloud_password=icloud_password,
+            icloud_password=final_icloud_password,
             protagonist_features=user.get("protagonist_features")
         )
         

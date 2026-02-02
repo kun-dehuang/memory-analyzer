@@ -144,6 +144,41 @@ async def upload_protagonist_photo(
             os.remove(file_path)
 
 
+@router.put("/{user_id}/icloud-password")
+async def update_icloud_password(
+    user_id: str,
+    icloud_password: str,
+    current_user: User = Depends(get_current_user)
+):
+    """更新用户 iCloud 密码"""
+    # 检查权限
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权修改其他用户信息"
+        )
+    
+    # 准备更新数据
+    update_data = {
+        "icloud_password": icloud_password,
+        "updated_at": datetime.utcnow()
+    }
+    
+    # 执行更新
+    result = await users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    return {"message": "iCloud 密码更新成功"}
+
+
 @router.delete("/{user_id}")
 async def delete_user(user_id: str, current_user: User = Depends(get_current_user)):
     """删除用户"""

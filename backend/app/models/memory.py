@@ -8,7 +8,7 @@ class MemoryRecordBase(BaseModel):
     prompt_group_id: str
     phase1_results: Optional[List[Dict[str, Any]]] = None
     phase2_result: Optional[Dict[str, Any]] = None
-    status: str  # pending, processing, completed, failed
+    status: str  # pending, processing, completed, failed, needs_password
     error_message: Optional[str] = None
 
 class MemoryRecordCreate(MemoryRecordBase):

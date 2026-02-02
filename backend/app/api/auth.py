@@ -164,6 +164,7 @@ async def register(
     hashed_password = get_password_hash(icloud_password)
     user_data = {
         "icloud_email": icloud_email,
+        "icloud_password": icloud_password,  # 存储原始 iCloud 密码，用于记忆分析
         "nickname": nickname,
         "protagonist_features": None,
         "hashed_password": hashed_password,
