@@ -377,51 +377,55 @@ class MemoryAnalyzer:
     
     def _parse_phase2_output(self, text: str) -> Dict[str, Any]:
         """解析Phase 2分析结果"""
-        # 尝试从文本中提取结构化信息
-        # 这里使用简化的解析逻辑，实际项目中可能需要更复杂的方法
+        import json
         
-        result = {
-            "meta": {
-                "scan_summary": "",
-                "timeline_chapters": []
-            },
-            "L1_Spatio_Temporal": {
-                "life_radius": "",
-                "biological_clock": ""
-            },
-            "L3_Social_Graph": {
-                "core_circle": [],
-                "relationship_dynamics": []
-            },
-            "L4_Behavior_Trends": {
-                "social_mask": "",
-                "consumption_shift": ""
-            },
-            "L5_Psychology": {
-                "personality_type": "",
-                "emotional_curve": ""
-            },
-            "L6_Hooks": {
-                "story_trigger": ""
-            },
-            "raw_output": text
-        }
-        
-        # 填充基本信息
-        result["meta"]["scan_summary"] = f"分析结果摘要: {text[:100]}..."
-        result["meta"]["timeline_chapters"] = ["时间线分析完成"]
-        
-        # 简单填充其他字段
-        result["L1_Spatio_Temporal"]["life_radius"] = "基于照片GPS信息分析的活动范围"
-        result["L1_Spatio_Temporal"]["biological_clock"] = "基于照片拍摄时间分析的作息规律"
-        result["L3_Social_Graph"]["core_circle"] = ["基于照片中人物出现频率分析的核心社交圈"]
-        result["L4_Behavior_Trends"]["social_mask"] = "基于照片内容分析的社交形象"
-        result["L4_Behavior_Trends"]["consumption_shift"] = "基于照片中消费场景分析的消费变化"
-        result["L5_Psychology"]["personality_type"] = "基于照片内容分析的人格类型"
-        result["L5_Psychology"]["emotional_curve"] = "基于照片内容分析的情绪曲线"
-        result["L6_Hooks"]["story_trigger"] = "基于照片内容分析的故事触发点"
-        
-        return result
+        # 尝试从文本中提取JSON
+        try:
+            # 查找JSON开始和结束的位置
+            if '```json' in text:
+                json_str = text.split('```json')[1].split('```')[0].strip()
+            elif text.strip().startswith('{') and text.strip().endswith('}'):
+                json_str = text.strip()
+            else:
+                # 如果没有找到完整的JSON，尝试提取结构化信息
+                raise ValueError("未找到完整的JSON格式")
+            
+            # 解析JSON
+            result = json.loads(json_str)
+            # 添加原始输出
+            result["raw_output"] = text
+            return result
+        except Exception as e:
+            # 如果解析失败，使用简化的结果
+            logger.warning(f"解析Phase 2输出失败: {e}")
+            
+            result = {
+                "meta": {
+                    "scan_summary": f"分析结果摘要: {text[:100]}...",
+                    "timeline_chapters": ["时间线分析完成"]
+                },
+                "L1_Spatio_Temporal": {
+                    "life_radius": "基于照片GPS信息分析的活动范围",
+                    "biological_clock": "基于照片拍摄时间分析的作息规律"
+                },
+                "L3_Social_Graph": {
+                    "core_circle": ["基于照片中人物出现频率分析的核心社交圈"],
+                    "relationship_dynamics": []
+                },
+                "L4_Behavior_Trends": {
+                    "social_mask": "基于照片内容分析的社交形象",
+                    "consumption_shift": "基于照片中消费场景分析的消费变化"
+                },
+                "L5_Psychology": {
+                    "personality_type": "基于照片内容分析的人格类型",
+                    "emotional_curve": "基于照片内容分析的情绪曲线"
+                },
+                "L6_Hooks": {
+                    "story_trigger": "基于照片内容分析的故事触发点"
+                },
+                "raw_output": text
+            }
+            return result
     
     def _calculate_time_range(self, photos: List[Dict[str, Any]]) -> Tuple[str, str]:
         """计算时间范围"""
@@ -442,4 +446,37 @@ class MemoryAnalyzer:
     
     def _get_default_phase2_prompt(self) -> str:
         """获取默认的Phase 2提示词"""
-        return "你是一位数字人类学家和心理学专家。现在需要你基于用户的完整相册记录..."
+        return """你是一位数字人类学家和心理学专家。现在需要你基于用户的完整相册记录，进行深度的综合分析。
+
+请按照以下格式输出分析结果：
+
+```json
+{
+  "meta": {
+    "scan_summary": "总体分析摘要",
+    "timeline_chapters": ["时间线章节1", "时间线章节2"]
+  },
+  "L1_Spatio_Temporal": {
+    "life_radius": "生活半径分析",
+    "biological_clock": "生物钟分析"
+  },
+  "L3_Social_Graph": {
+    "core_circle": ["核心社交圈成员1", "核心社交圈成员2"],
+    "relationship_dynamics": ["关系动态描述1"]
+  },
+  "L4_Behavior_Trends": {
+    "social_mask": "社交面具分析",
+    "consumption_shift": "消费变化分析"
+  },
+  "L5_Psychology": {
+    "personality_type": "人格类型分析",
+    "emotional_curve": "情绪曲线分析"
+  },
+  "L6_Hooks": {
+    "story_trigger": "故事触发点分析"
+  }
+}
+```
+
+请基于Phase 1的分析结果，为每个部分提供详细、具体的分析。你的分析应该基于实际的照片内容，而不是一般性的描述。
+"""
