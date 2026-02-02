@@ -119,7 +119,17 @@ class MemoryAnalyzer:
             
             # 2. 从iCloud拉取照片
             logger.info("从iCloud拉取照片")
-            all_photos = api.photos.all
+            try:
+                all_photos = api.photos.all
+            except Exception as e:
+                error_message = str(e)
+                logger.error(f"获取照片列表失败: {error_message}")
+                
+                # 检查是否是认证错误
+                if "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "Authentication required" in error_message:
+                    raise Exception("需要二次验证，请提供验证码")
+                else:
+                    raise
             photos = []
             photo_map = {}
             
@@ -212,6 +222,9 @@ class MemoryAnalyzer:
             global logger
             logger = logging.getLogger(__name__)
         
+        # 创建局部logger变量，供嵌套函数使用
+        local_logger = logger
+        
         def download_photo_sync(photo_id, email, password, api_instance=None, photo_map_instance=None):
             """同步下载照片"""
             try:
@@ -220,13 +233,13 @@ class MemoryAnalyzer:
                     photo = photo_map_instance[photo_id]
                     # 下载照片到内存
                     photo_bytes = photo.download().content
-                    logger.info(f"从缓存中获取照片 {photo_id} 并下载成功，大小: {len(photo_bytes)} bytes")
+                    local_logger.info(f"从缓存中获取照片 {photo_id} 并下载成功，大小: {len(photo_bytes)} bytes")
                     return photo_bytes
                 
                 # 如果没有找到，且有api实例，尝试使用api查找
                 elif api_instance:
                     api = api_instance
-                    logger.info(f"从API中查找照片: {photo_id}")
+                    local_logger.info(f"从API中查找照片: {photo_id}")
                     # 获取所有照片
                     all_photos = api.photos.all
                     
@@ -235,18 +248,18 @@ class MemoryAnalyzer:
                         if hasattr(photo, 'id') and photo.id == photo_id:
                             # 下载照片到内存
                             photo_bytes = photo.download().content
-                            logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                            local_logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
                             return photo_bytes
                         elif hasattr(photo, 'filename') and photo.filename == photo_id:
                             # 也可以通过文件名查找
                             photo_bytes = photo.download().content
-                            logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
+                            local_logger.info(f"照片 {photo_id} 下载成功，大小: {len(photo_bytes)} bytes")
                             return photo_bytes
                 
-                logger.error(f"未找到照片: {photo_id}")
+                local_logger.error(f"未找到照片: {photo_id}")
                 return None
             except Exception as e:
-                logger.error(f"下载照片失败: {e}")
+                local_logger.error(f"下载照片失败: {e}")
                 return None
         
         async def process_photo(photo):
@@ -267,7 +280,7 @@ class MemoryAnalyzer:
                 # 下载 iCloud 照片并转换为 Base64
                 icloud_photo_id = photo.get("id") or photo.get("filename")
                 if icloud_photo_id:
-                    logger.info(f"正在下载 iCloud 照片: {icloud_photo_id}")
+                    local_logger.info(f"正在下载 iCloud 照片: {icloud_photo_id}")
                     
                     try:
                         # 使用线程池执行同步下载
@@ -286,14 +299,14 @@ class MemoryAnalyzer:
                             # 转换为 Base64
                             base64_image = base64.b64encode(photo_bytes).decode('utf-8')
                             metadata["base64_image"] = base64_image
-                            logger.info(f"照片 {icloud_photo_id} 编码完成")
+                            local_logger.info(f"照片 {icloud_photo_id} 编码完成")
                     except Exception as e:
-                        logger.error(f"下载 iCloud 照片失败: {e}")
+                        local_logger.error(f"下载 iCloud 照片失败: {e}")
                         # 下载失败时，继续处理，只是没有 base64_image
                 
                 return metadata
             except Exception as e:
-                logger.error(f"处理照片失败: {e}")
+                local_logger.error(f"处理照片失败: {e}")
                 return None
         
         # 并发处理
