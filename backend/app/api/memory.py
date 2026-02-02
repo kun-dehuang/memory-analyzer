@@ -38,13 +38,13 @@ async def get_memory_records(
     # 查询记录
     records = []
     async for record in memory_records_collection.find(query).sort("created_at", -1).skip(skip).limit(limit):
-        # 构建记录字典，不包含大型字段
+        # 构建记录字典，包含所有字段
         record_dict = {
             "id": str(record["_id"]),
             "user_id": record["user_id"],
             "prompt_group_id": record["prompt_group_id"],
-            "phase1_results": None,  # 不返回 phase1_results
-            "phase2_result": None,   # 不返回 phase2_result
+            "phase1_results": record.get("phase1_results"),  # 返回 phase1_results
+            "phase2_result": record.get("phase2_result"),   # 返回 phase2_result
             "status": record["status"],
             "error_message": record.get("error_message"),
             "created_at": record["created_at"],
@@ -241,8 +241,14 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
             protagonist_features=user.get("protagonist_features")
         )
         
+        # 打印调试信息
+        print(f"分析完成 - phase1_results: {type(phase1_results)}, length: {len(phase1_results) if phase1_results else 0}")
+        print(f"分析完成 - phase2_result: {type(phase2_result)}")
+        print(f"分析完成 - image_count: {image_count}")
+        print(f"分析完成 - time_range: {time_range}")
+        
         # 更新分析结果
-        await memory_records_collection.update_one(
+        update_result = await memory_records_collection.update_one(
             {"_id": record_object_id},
             {"$set": {
                 "status": "completed",
@@ -254,6 +260,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                 "updated_at": datetime.utcnow()
             }}
         )
+        print(f"更新结果 - matched_count: {update_result.matched_count}, modified_count: {update_result.modified_count}")
         
     except Exception as e:
         # 更新错误状态
