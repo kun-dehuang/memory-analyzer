@@ -116,6 +116,25 @@ class MemoryAnalyzer:
                     local_logger.info("验证码验证成功")
                     # 保存会话
                     session_data = api.dump_session()
+                    
+                    # 验证成功后，再次检查认证状态
+                    if api.requires_2fa:
+                        local_logger.error("验证码验证成功后，仍然需要二次验证")
+                        raise Exception("验证码验证成功后，仍然需要二次验证")
+                    
+                    # 验证成功后，测试获取照片列表，确保认证状态正确
+                    try:
+                        test_photos = api.photos.all
+                        local_logger.info("验证成功后，测试获取照片列表成功")
+                    except Exception as e:
+                        local_logger.error(f"验证成功后，测试获取照片列表失败: {e}")
+                        # 测试失败，可能是会话问题，重新创建服务
+                        api = PyiCloudService(icloud_email, icloud_password)
+                        # 重新验证验证码
+                        result = api.validate_2fa_code(verification_code)
+                        if not result:
+                            raise Exception("验证码错误，请重新输入")
+                        session_data = api.dump_session()
                 else:
                     # 没有提供验证码，需要前端输入
                     raise Exception("需要二次验证，请提供验证码")

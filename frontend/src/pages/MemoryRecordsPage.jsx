@@ -228,69 +228,104 @@ function MemoryRecordsPage () {
           {showVerificationForm && (
             <>
               {console.log('验证码表单正在渲染，showVerificationForm:', showVerificationForm, 'currentRecordId:', currentRecordId)}
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ zIndex: 9999 }}>
-                <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold">输入 iCloud 验证码</h3>
-                      <button
-                        onClick={() => {
-                          console.log('点击了关闭按钮')
-                          setShowVerificationForm(false)
-                          console.log('关闭按钮 - 设置状态后')
-                        }}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+              {/* 简化的验证码输入表单，确保能正确显示 */}
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  backgroundColor: 'white',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                  width: '90%',
+                  maxWidth: '400px'
+                }}>
+                  <h3 style={{ marginBottom: '20px' }}>输入 iCloud 验证码</h3>
+
+                  {verificationError && (
+                    <div style={{
+                      backgroundColor: '#fee2e2',
+                      color: '#b91c1c',
+                      padding: '10px',
+                      borderRadius: '4px',
+                      marginBottom: '15px'
+                    }}>
+                      {verificationError}
                     </div>
+                  )}
 
-                    {verificationError && (
-                      <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-                        {verificationError}
-                      </div>
-                    )}
-
-                    {verificationSuccess && (
-                      <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
-                        {verificationSuccess}
-                      </div>
-                    )}
-
-                    <div className="mb-6">
-                      <label className="block text-gray-700 mb-2">验证码</label>
-                      <input
-                        type="text"
-                        value={verificationCode}
-                        onChange={(e) => {
-                          console.log('验证码输入改变:', e.target.value)
-                          setVerificationCode(e.target.value)
-                        }}
-                        className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="请输入 iCloud 发送的验证码"
-                      />
+                  {verificationSuccess && (
+                    <div style={{
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      padding: '10px',
+                      borderRadius: '4px',
+                      marginBottom: '15px'
+                    }}>
+                      {verificationSuccess}
                     </div>
+                  )}
 
-                    <div className="flex space-x-4">
-                      <button
-                        onClick={handleProvideVerificationCode}
-                        className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      >
-                        提交验证码
-                      </button>
-                      <button
-                        onClick={() => {
-                          console.log('点击了取消按钮')
-                          setShowVerificationForm(false)
-                          console.log('取消按钮 - 设置状态后')
-                        }}
-                        className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
-                      >
-                        取消
-                      </button>
-                    </div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px' }}>验证码</label>
+                    <input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => {
+                        console.log('验证码输入改变:', e.target.value)
+                        setVerificationCode(e.target.value)
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px'
+                      }}
+                      placeholder="请输入 iCloud 发送的验证码"
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={handleProvideVerificationCode}
+                      style={{
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      提交验证码
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log('点击了取消按钮')
+                        setShowVerificationForm(false)
+                        console.log('取消按钮 - 设置状态后')
+                      }}
+                      style={{
+                        backgroundColor: '#e5e7eb',
+                        color: '#374151',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      取消
+                    </button>
                   </div>
                 </div>
               </div>
