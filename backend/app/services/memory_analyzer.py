@@ -78,7 +78,21 @@ class MemoryAnalyzer:
             
             # 1. 初始化iCloud服务并处理二次验证
             logger.info("初始化iCloud服务")
-            api = PyiCloudService(icloud_email, icloud_password)
+            
+            # 尝试使用会话数据恢复会话
+            if session_data:
+                logger.info("使用会话数据恢复iCloud会话")
+                api = PyiCloudService(icloud_email, icloud_password)
+                try:
+                    api.load_session(session_data)
+                    logger.info("会话恢复成功")
+                except Exception as e:
+                    logger.error(f"会话恢复失败: {e}")
+                    # 会话恢复失败，重新创建服务
+                    api = PyiCloudService(icloud_email, icloud_password)
+            else:
+                # 没有会话数据，创建新的服务
+                api = PyiCloudService(icloud_email, icloud_password)
             
             # 处理二次验证
             if api.requires_2fa:

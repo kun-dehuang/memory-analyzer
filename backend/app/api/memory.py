@@ -328,6 +328,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         # 检查 iCloud 凭据
         icloud_email = user.get("icloud_email")
         stored_icloud_password = user.get("icloud_password")
+        stored_session_data = user.get("icloud_session_data")
         
         # 优先使用传递过来的密码，如果没有则使用存储的密码
         final_icloud_password = icloud_password or stored_icloud_password
@@ -355,11 +356,26 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                 icloud_email=icloud_email,
                 icloud_password=final_icloud_password,
                 verification_code=verification_code,
+                session_data=stored_session_data,
                 protagonist_features=user.get("protagonist_features")
             )
+            
+            # 如果获取到新的会话数据，保存到用户信息中
+            if session_data:
+                await users_collection.update_one(
+                    {"_id": ObjectId(user_id)},
+                    {"$set": {
+                        "icloud_session_data": session_data,
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
         except Exception as e:
-            if "需要二次验证" in str(e):
-                # 如果需要二次验证，将状态更新为需要验证
+            error_message = str(e)
+            logger.error(f"分析异常: {error_message}")
+            
+            # 检查是否需要二次验证或认证错误
+            if "需要二次验证" in error_message or "Authentication required" in error_message or "Missing X-APPLE-WEBAUTH-TOKEN" in error_message:
+                # 如果需要二次验证或认证错误，将状态更新为需要验证
                 await memory_records_collection.update_one(
                     {"_id": record_object_id},
                     {"$set": {
