@@ -149,144 +149,144 @@ function MemoryRecordsPage() {
               暂无记录
             </div>
           )}
-        </div>
 
-        {/* 结果详情弹窗 */}
-        {selectedRecord && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold">分析结果详情</h3>
-                  <button
-                    onClick={() => setSelectedRecord(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Phase 1 结果 */}
-                {selectedRecord.phase1_results && selectedRecord.phase1_results.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold mb-3 text-blue-600">Phase 1 分析结果</h4>
-                    <div className="space-y-4">
-                      {selectedRecord.phase1_results.map((result, index) => (
-                        <div key={index} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <h5 className="font-medium">{result.batch_id}</h5>
-                            <span className="text-sm text-gray-500">
-                              {result.image_count} 张照片
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {result.analysis_summary}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+          {/* 结果详情弹窗 */}
+          {selectedRecord && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold">分析结果详情</h3>
+                    <button
+                      onClick={() => setSelectedRecord(null)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
-                )}
 
-                {/* Phase 2 结果 */}
-                {selectedRecord.phase2_result && (
-                  <div className="mb-6">
-                    <h4 className="text-lg font-semibold mb-3 text-green-600">Phase 2 综合分析</h4>
-                    <div className="space-y-4">
-                      {/* 元信息 */}
-                      {selectedRecord.phase2_result.meta && (
-                        <div className="border rounded-lg p-4">
-                          <h5 className="font-medium mb-2">概览</h5>
-                          <div className="text-sm text-gray-600">
-                            {selectedRecord.phase2_result.meta.scan_summary}
-                          </div>
-                          {selectedRecord.phase2_result.meta.timeline_chapters && (
-                            <div className="mt-2">
-                              <span className="font-medium">时间线章节：</span>
-                              <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
-                                {selectedRecord.phase2_result.meta.timeline_chapters.map((chapter, index) => (
-                                  <li key={index}>{chapter}</li>
-                                ))}
-                              </ul>
+                  {/* Phase 1 结果 */}
+                  {selectedRecord.phase1_results && selectedRecord.phase1_results.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold mb-3 text-blue-600">Phase 1 分析结果</h4>
+                      <div className="space-y-4">
+                        {selectedRecord.phase1_results.map((result, index) => (
+                          <div key={index} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <h5 className="font-medium">{result.batch_id}</h5>
+                              <span className="text-sm text-gray-500">
+                                {result.image_count} 张照片
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 空间时间 */}
-                      {selectedRecord.phase2_result.L1_Spatio_Temporal && (
-                        <div className="border rounded-lg p-4">
-                          <h5 className="font-medium mb-2">空间时间维度</h5>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div><span className="font-medium">生活半径：</span>{selectedRecord.phase2_result.L1_Spatio_Temporal.life_radius}</div>
-                            <div><span className="font-medium">生物钟：</span>{selectedRecord.phase2_result.L1_Spatio_Temporal.biological_clock}</div>
+                            <div className="text-sm text-gray-600">
+                              {result.analysis_summary}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                      {/* 社交图谱 */}
-                      {selectedRecord.phase2_result.L3_Social_Graph && (
-                        <div className="border rounded-lg p-4">
-                          <h5 className="font-medium mb-2">社交图谱</h5>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div>
-                              <span className="font-medium">核心社交圈：</span>
-                              {selectedRecord.phase2_result.L3_Social_Graph.core_circle.length > 0 ? (
-                                <ul className="list-disc list-inside mt-1">
-                                  {selectedRecord.phase2_result.L3_Social_Graph.core_circle.map((person, index) => (
-                                    <li key={index}>{person}</li>
+                  {/* Phase 2 结果 */}
+                  {selectedRecord.phase2_result && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold mb-3 text-green-600">Phase 2 综合分析</h4>
+                      <div className="space-y-4">
+                        {/* 元信息 */}
+                        {selectedRecord.phase2_result.meta && (
+                          <div className="border rounded-lg p-4">
+                            <h5 className="font-medium mb-2">概览</h5>
+                            <div className="text-sm text-gray-600">
+                              {selectedRecord.phase2_result.meta.scan_summary}
+                            </div>
+                            {selectedRecord.phase2_result.meta.timeline_chapters && (
+                              <div className="mt-2">
+                                <span className="font-medium">时间线章节：</span>
+                                <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
+                                  {selectedRecord.phase2_result.meta.timeline_chapters.map((chapter, index) => (
+                                    <li key={index}>{chapter}</li>
                                   ))}
                                 </ul>
-                              ) : (
-                                <span className="text-gray-400">暂无数据</span>
-                              )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 空间时间 */}
+                        {selectedRecord.phase2_result.L1_Spatio_Temporal && (
+                          <div className="border rounded-lg p-4">
+                            <h5 className="font-medium mb-2">空间时间维度</h5>
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div><span className="font-medium">生活半径：</span>{selectedRecord.phase2_result.L1_Spatio_Temporal.life_radius}</div>
+                              <div><span className="font-medium">生物钟：</span>{selectedRecord.phase2_result.L1_Spatio_Temporal.biological_clock}</div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* 行为趋势 */}
-                      {selectedRecord.phase2_result.L4_Behavior_Trends && (
-                        <div className="border rounded-lg p-4">
-                          <h5 className="font-medium mb-2">行为趋势</h5>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div><span className="font-medium">社交面具：</span>{selectedRecord.phase2_result.L4_Behavior_Trends.social_mask}</div>
-                            <div><span className="font-medium">消费变化：</span>{selectedRecord.phase2_result.L4_Behavior_Trends.consumption_shift}</div>
+                        {/* 社交图谱 */}
+                        {selectedRecord.phase2_result.L3_Social_Graph && (
+                          <div className="border rounded-lg p-4">
+                            <h5 className="font-medium mb-2">社交图谱</h5>
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div>
+                                <span className="font-medium">核心社交圈：</span>
+                                {selectedRecord.phase2_result.L3_Social_Graph.core_circle.length > 0 ? (
+                                  <ul className="list-disc list-inside mt-1">
+                                    {selectedRecord.phase2_result.L3_Social_Graph.core_circle.map((person, index) => (
+                                      <li key={index}>{person}</li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <span className="text-gray-400">暂无数据</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* 心理学 */}
-                      {selectedRecord.phase2_result.L5_Psychology && (
-                        <div className="border rounded-lg p-4">
-                          <h5 className="font-medium mb-2">心理学分析</h5>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div><span className="font-medium">人格类型：</span>{selectedRecord.phase2_result.L5_Psychology.personality_type}</div>
-                            <div><span className="font-medium">情绪曲线：</span>{selectedRecord.phase2_result.L5_Psychology.emotional_curve}</div>
+                        {/* 行为趋势 */}
+                        {selectedRecord.phase2_result.L4_Behavior_Trends && (
+                          <div className="border rounded-lg p-4">
+                            <h5 className="font-medium mb-2">行为趋势</h5>
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div><span className="font-medium">社交面具：</span>{selectedRecord.phase2_result.L4_Behavior_Trends.social_mask}</div>
+                              <div><span className="font-medium">消费变化：</span>{selectedRecord.phase2_result.L4_Behavior_Trends.consumption_shift}</div>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* 故事钩子 */}
-                      {selectedRecord.phase2_result.L6_Hooks && (
-                        <div className="border rounded-lg p-4">
-                          <h5 className="font-medium mb-2">故事钩子</h5>
-                          <div className="text-sm text-gray-600">
-                            {selectedRecord.phase2_result.L6_Hooks.story_trigger}
+                        {/* 心理学 */}
+                        {selectedRecord.phase2_result.L5_Psychology && (
+                          <div className="border rounded-lg p-4">
+                            <h5 className="font-medium mb-2">心理学分析</h5>
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div><span className="font-medium">人格类型：</span>{selectedRecord.phase2_result.L5_Psychology.personality_type}</div>
+                              <div><span className="font-medium">情绪曲线：</span>{selectedRecord.phase2_result.L5_Psychology.emotional_curve}</div>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+
+                        {/* 故事钩子 */}
+                        {selectedRecord.phase2_result.L6_Hooks && (
+                          <div className="border rounded-lg p-4">
+                            <h5 className="font-medium mb-2">故事钩子</h5>
+                            <div className="text-sm text-gray-600">
+                              {selectedRecord.phase2_result.L6_Hooks.story_trigger}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {!selectedRecord.phase1_results && !selectedRecord.phase2_result && (
-                  <div className="text-center py-8 text-gray-500">
-                    暂无分析结果
-                  </div>
-                )}
+                  {!selectedRecord.phase1_results && !selectedRecord.phase2_result && (
+                    <div className="text-center py-8 text-gray-500">
+                      暂无分析结果
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
