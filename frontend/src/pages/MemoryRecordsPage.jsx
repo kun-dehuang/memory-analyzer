@@ -287,6 +287,18 @@ function MemoryRecordsPage () {
                             </div>
                           </div>
                         )}
+
+                        {/* 原始输出 */}
+                        {selectedRecord.phase2_result.raw_output && (
+                          <details className="mt-4">
+                            <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
+                              查看原始输出
+                            </summary>
+                            <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                              {selectedRecord.phase2_result.raw_output}
+                            </div>
+                          </details>
+                        )}
                       </div>
                     </div>
                   )}
