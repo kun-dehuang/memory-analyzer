@@ -169,6 +169,20 @@ class MemoryAnalyzer:
                     photos_service = api.photos
                     local_logger.info("获取照片服务成功")
                     
+                    # 打印photos_service支持的所有方法和属性
+                    try:
+                        methods = [attr for attr in dir(photos_service) if not attr.startswith('_')]
+                        local_logger.info(f"photos_service支持的方法和属性: {methods}")
+                        
+                        # 检查特定的方法
+                        for method_name in ['all', 'all_assets', 'albums', 'photos']:
+                            if hasattr(photos_service, method_name):
+                                local_logger.info(f"photos_service有{method_name}方法")
+                            else:
+                                local_logger.info(f"photos_service没有{method_name}方法")
+                    except Exception as e:
+                        local_logger.warning(f"打印方法列表失败: {e}")
+                    
                     # 尝试获取所有照片
                     try:
                         # 方法1: 检查是否有all方法
