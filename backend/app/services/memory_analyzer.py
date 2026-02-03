@@ -10,6 +10,7 @@ import json
 import os
 import re
 import base64
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
@@ -50,8 +51,7 @@ class MemoryAnalyzer:
     async def analyze(self, user_id: str, prompt_group_id: str, 
                      icloud_email: str, icloud_password: str, 
                      verification_code: Optional[str] = None, 
-                     session_data: Optional[str] = None, 
-                     protagonist_features: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str], Optional[str]]:
+                     protagonist_features: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str]]:
         """
         执行完整的记忆分析流程
         
@@ -61,15 +61,13 @@ class MemoryAnalyzer:
             icloud_email: iCloud邮箱
             icloud_password: iCloud密码
             verification_code: 二次验证码（如果需要）
-            session_data: 会话数据（用于保持登录状态）
             protagonist_features: 主角特征
             
         Returns:
-            (phase1_results, phase2_result, image_count, time_range, session_data)
+            (phase1_results, phase2_result, image_count, time_range)
         """
         # 确保logger已定义
         if 'logger' not in globals():
-            import logging
             global logger
             logger = logging.getLogger(__name__)
         
@@ -88,8 +86,23 @@ class MemoryAnalyzer:
             # 1. 初始化iCloud服务并处理二次验证
             local_logger.info("初始化iCloud服务")
             
-            # 先创建基础服务实例
-            api = PyiCloudService(icloud_email, icloud_password)
+            # 创建用户会话目录，用于存储iCloud会话数据
+            # 确保数据目录存在
+            data_dir = Path("/app/data/icloud_sessions")
+            if not data_dir.exists():
+                # 如果在Windows上运行，使用相对路径
+                data_dir = Path("data/icloud_sessions")
+            # 创建用户会话目录
+            user_session_dir = data_dir / user_id
+            user_session_dir.mkdir(parents=True, exist_ok=True)
+            local_logger.info(f"创建用户会话目录成功: {user_session_dir}")
+            
+            # 初始化iCloud服务，指定会话目录
+            api = PyiCloudService(
+                apple_id=icloud_email,
+                password=icloud_password,
+                cookie_directory=str(user_session_dir)  # 关键：指定持久化的会话目录
+            )
             local_logger.info(f"服务实例创建成功，requires_2fa: {api.requires_2fa}")
             
             # 检查是否提供了验证码
@@ -102,19 +115,20 @@ class MemoryAnalyzer:
                     raise Exception("验证码错误，请重新输入")
                 local_logger.info("验证码验证成功")
                 
-                # 验证成功后，直接继续执行，不进行额外的测试
-                # 因为额外的测试可能会触发新的认证请求
-                local_logger.info("验证成功后，直接继续执行分析流程")
-                # 不再进行照片测试，直接进入照片获取阶段
-                # 这样可以减少API调用，避免触发新的认证请求
-                
-                # 尝试获取会话数据，以便保存和后续使用
+                # 验证成功后，立即保存会话（将内存中的有效会话写入指定目录的文件）
                 try:
-                    session_data = api.dump_session()
-                    local_logger.info("获取会话数据成功")
+                    api.save_session()
+                    local_logger.info("二次验证成功，会话已持久化保存！")
                 except Exception as e:
-                    local_logger.error(f"获取会话数据失败: {e}")
-                    session_data = None
+                    local_logger.error(f"保存会话失败: {e}")
+                
+                # 添加一个小的延迟，给iCloud服务端时间来处理认证请求
+                local_logger.info("验证成功后，添加延迟以确保认证状态正确更新")
+                time.sleep(2)  # 添加2秒延迟
+                local_logger.info("延迟结束，继续执行分析流程")
+                
+                # 直接继续执行，会话数据已通过文件系统保存
+                session_data = None
             else:
                 # 没有提供验证码，尝试访问照片服务来检测是否需要二次验证
                 local_logger.info("没有提供验证码，测试访问照片服务来检测是否需要二次验证")
@@ -234,7 +248,7 @@ class MemoryAnalyzer:
             time_range = self._calculate_time_range(photo_metadata)
             
             local_logger.info("记忆分析流程完成")
-            return phase1_results, phase2_result, filtered_count, time_range, session_data
+            return phase1_results, phase2_result, filtered_count, time_range
             
         except Exception as e:
             local_logger.error(f"分析失败: {e}")
@@ -246,21 +260,14 @@ class MemoryAnalyzer:
         
         # 确保logger已定义
         if 'logger' not in globals():
-            import logging
             global logger
             logger = logging.getLogger(__name__)
         
         # 创建局部logger变量，供嵌套函数使用
         local_logger = logger
         
-        # 获取会话数据
+        # 注意：移除了获取会话数据的代码，因为PyiCloudService对象没有dump_session方法
         session_data = None
-        if api:
-            try:
-                session_data = api.dump_session()
-                local_logger.info("获取会话数据成功")
-            except Exception as e:
-                local_logger.error(f"获取会话数据失败: {e}")
         
         def download_photo_sync(photo_id, email, password, session_data=None, photo_map_instance=None):
             """同步下载照片"""

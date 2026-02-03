@@ -334,7 +334,6 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         # 检查 iCloud 凭据
         icloud_email = user.get("icloud_email")
         stored_icloud_password = user.get("icloud_password")
-        stored_session_data = user.get("icloud_session_data")
         
         # 优先使用传递过来的密码，如果没有则使用存储的密码
         final_icloud_password = icloud_password or stored_icloud_password
@@ -356,25 +355,16 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         # 执行分析
         analyzer = MemoryAnalyzer()
         try:
-            phase1_results, phase2_result, image_count, time_range, session_data = await analyzer.analyze(
+            phase1_results, phase2_result, image_count, time_range = await analyzer.analyze(
                 user_id=user_id,
                 prompt_group_id=prompt_group_id,
                 icloud_email=icloud_email,
                 icloud_password=final_icloud_password,
                 verification_code=verification_code,
-                session_data=stored_session_data,
                 protagonist_features=user.get("protagonist_features")
             )
             
-            # 如果获取到新的会话数据，保存到用户信息中
-            if session_data:
-                await users_collection.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {"$set": {
-                        "icloud_session_data": session_data,
-                        "updated_at": datetime.utcnow()
-                    }}
-                )
+            # 不再需要保存会话数据，因为会话数据已通过文件系统持久化
         except Exception as e:
             error_message = str(e)
             logger.error(f"分析异常: {error_message}")
