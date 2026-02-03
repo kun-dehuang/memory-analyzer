@@ -195,7 +195,7 @@ class MemoryAnalyzer:
                                 # 限制照片数量，避免内存溢出
                                 photos_assets = []
                                 count = 0
-                                max_photos = 50  # 限制为50张照片
+                                max_photos = 100  # 限制为100张照片
                                 batch_size = 10  # 每批处理10张
                                 
                                 local_logger.info(f"开始获取照片，限制为 {max_photos} 张")
