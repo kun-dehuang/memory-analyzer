@@ -164,8 +164,7 @@ class MemoryAnalyzer:
             try:
                 local_logger.info("尝试获取照片列表")
                 # 直接获取照片列表
-                photos_service = api.photos
-                photo_assets = photos_service.all_assets()
+                photo_assets = api.photos.all()
                 local_logger.info("获取照片列表成功")
                 
                 # 直接使用获取到的照片列表，不进行额外的测试
@@ -312,8 +311,7 @@ class MemoryAnalyzer:
                     return None
                 
                 # 获取所有照片
-                photos_service = api.photos
-                photo_assets = photos_service.all_assets()
+                photo_assets = api.photos.all()
                 
                 # 查找目标照片
                 for photo in photo_assets:
