@@ -306,7 +306,8 @@ class MemoryAnalyzer:
             local_logger.info("过滤照片")
             filtered_photos = await self.photo_filter.filter(
                 photos=photos,
-                user_id=user_id
+                user_id=user_id,
+                photo_map=photo_map
             )
             
             filtered_count = len(filtered_photos)
