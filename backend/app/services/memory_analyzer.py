@@ -164,7 +164,8 @@ class MemoryAnalyzer:
             try:
                 local_logger.info("尝试获取照片列表")
                 # 直接获取照片列表
-                photo_assets = api.photos.all()
+                photos_service = api.photos
+                photo_assets = photos_service.all_assets()
                 local_logger.info("获取照片列表成功")
                 
                 # 直接使用获取到的照片列表，不进行额外的测试
@@ -311,7 +312,8 @@ class MemoryAnalyzer:
                     return None
                 
                 # 获取所有照片
-                photo_assets = api.photos.all()
+                photos_service = api.photos
+                photo_assets = photos_service.all_assets()
                 
                 # 查找目标照片
                 for photo in photo_assets:
@@ -423,17 +425,39 @@ class MemoryAnalyzer:
         """获取提示词"""
         prompts = {}
         
+        # 确保logger已定义
+        if 'logger' not in globals():
+            import logging
+            global logger
+            logger = logging.getLogger(__name__)
+        
+        # 创建局部logger变量
+        local_logger = logger
+        
+        local_logger.info(f"开始获取提示词，prompt_group_id: {prompt_group_id}")
+        
         # 查询该组的所有提示词
         async for prompt in prompts_collection.find({"prompt_group_id": prompt_group_id}):
-            prompts[prompt["type"]] = prompt["content"]
+            prompt_type = prompt["type"]
+            prompt_content = prompt["content"]
+            prompts[prompt_type] = prompt_content
+            local_logger.info(f"获取到提示词 - 类型: {prompt_type}, 内容长度: {len(prompt_content)} 字符")
+            local_logger.info(f"提示词详细内容: {prompt_content}")
         
         # 如果没有找到，使用默认提示词
         if "phase1" not in prompts:
-            prompts["phase1"] = self._get_default_phase1_prompt()
+            default_phase1 = self._get_default_phase1_prompt()
+            prompts["phase1"] = default_phase1
+            local_logger.info(f"使用默认Phase 1提示词，内容长度: {len(default_phase1)} 字符")
+            local_logger.info(f"默认Phase 1提示词: {default_phase1}")
         
         if "phase2" not in prompts:
-            prompts["phase2"] = self._get_default_phase2_prompt()
+            default_phase2 = self._get_default_phase2_prompt()
+            prompts["phase2"] = default_phase2
+            local_logger.info(f"使用默认Phase 2提示词，内容长度: {len(default_phase2)} 字符")
+            local_logger.info(f"默认Phase 2提示词: {default_phase2}")
         
+        local_logger.info(f"提示词获取完成，共获取 {len(prompts)} 个提示词")
         return prompts
     
     async def _execute_phase1(self, batches: List[Dict[str, Any]], 
@@ -456,6 +480,8 @@ class MemoryAnalyzer:
             
             # 构建提示词
             phase1_prompt = prompts.get("phase1", self._get_default_phase1_prompt())
+            local_logger.info(f"执行Phase 1分析 - 使用的提示词长度: {len(phase1_prompt)} 字符")
+            local_logger.info(f"Phase 1提示词内容: {phase1_prompt}")
             
             # 准备批处理信息
             batch_info = {
@@ -559,6 +585,8 @@ class MemoryAnalyzer:
         
         # 构建提示词
         phase2_prompt = prompts.get("phase2", self._get_default_phase2_prompt())
+        local_logger.info(f"执行Phase 2分析 - 使用的提示词长度: {len(phase2_prompt)} 字符")
+        local_logger.info(f"Phase 2提示词内容: {phase2_prompt}")
         
         # 准备phase1结果摘要
         phase1_summary = "\n".join([
