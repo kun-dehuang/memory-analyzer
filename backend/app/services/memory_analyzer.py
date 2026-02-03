@@ -102,24 +102,19 @@ class MemoryAnalyzer:
                     raise Exception("验证码错误，请重新输入")
                 local_logger.info("验证码验证成功")
                 
-                # 验证成功后，确保认证状态在内存中保持
-                local_logger.info("验证成功后，确保认证状态在内存中保持")
+                # 验证成功后，直接继续执行，不进行额外的测试
+                # 因为额外的测试可能会触发新的认证请求
+                local_logger.info("验证成功后，直接继续执行分析流程")
+                # 不再进行照片测试，直接进入照片获取阶段
+                # 这样可以减少API调用，避免触发新的认证请求
+                
+                # 尝试获取会话数据，以便保存和后续使用
                 try:
-                    # 直接测试获取照片列表，确保认证状态完全正确
-                    local_logger.info("验证成功后，测试获取照片列表")
-                    all_photos = api.photos.all
-                    local_logger.info("验证成功后，获取照片列表成功")
-                    
-                    # 测试照片列表是否可访问
-                    test_photo = next(iter(all_photos), None)
-                    if test_photo:
-                        local_logger.info("验证成功后，测试获取照片成功")
-                    else:
-                        local_logger.info("验证成功后，测试获取照片列表为空")
+                    session_data = api.dump_session()
+                    local_logger.info("获取会话数据成功")
                 except Exception as e:
-                    local_logger.error(f"验证成功后，测试照片访问失败: {e}")
-                    # 测试失败，可能是认证状态问题，直接抛出需要二次验证的异常
-                    raise Exception("需要二次验证，请提供验证码")
+                    local_logger.error(f"获取会话数据失败: {e}")
+                    session_data = None
             else:
                 # 没有提供验证码，尝试访问照片服务来检测是否需要二次验证
                 local_logger.info("没有提供验证码，测试访问照片服务来检测是否需要二次验证")
@@ -144,18 +139,13 @@ class MemoryAnalyzer:
             # 尝试获取照片列表
             try:
                 local_logger.info("尝试获取照片列表")
-                # 直接获取照片列表，因为在验证成功后已经测试过照片服务对象
+                # 直接获取照片列表
                 all_photos = api.photos.all
                 local_logger.info("获取照片列表成功")
                 
-                # 测试照片列表是否可访问，不消耗生成器
-                test_photo = next(iter(all_photos), None)
-                if test_photo:
-                    local_logger.info("照片列表可正常访问")
-                else:
-                    local_logger.info("照片列表为空")
-                # 重新获取照片列表，因为之前的生成器已经被消耗
-                all_photos = api.photos.all
+                # 直接使用获取到的照片列表，不进行额外的测试
+                # 因为额外的测试可能会触发新的认证请求
+                local_logger.info("直接使用获取到的照片列表")
             except Exception as e:
                 error_message = str(e)
                 local_logger.error(f"获取照片列表失败: {error_message}")
