@@ -30,9 +30,11 @@ load_dotenv()
 
 # 配置日志
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+# 同时开启requests库的DEBUG日志，查看请求头/响应体
+logging.getLogger("requests").setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # 配置Gemini API
@@ -95,13 +97,15 @@ class MemoryAnalyzer:
             # 创建用户会话目录
             user_session_dir = data_dir / user_id
             user_session_dir.mkdir(parents=True, exist_ok=True)
+            user_session_dir.chmod(0o777)
+            
             local_logger.info(f"创建用户会话目录成功: {user_session_dir}")
             
             # 初始化iCloud服务，指定会话目录
             api = PyiCloudService(
                 apple_id=icloud_email,
                 password=icloud_password,
-                cookie_directory=str(user_session_dir)  # 关键：指定持久化的会话目录
+                #cookie_directory=str(user_session_dir)  # 关键：指定持久化的会话目录
             )
             local_logger.info(f"服务实例创建成功，requires_2fa: {api.requires_2fa}")
             
