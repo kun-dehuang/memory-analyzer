@@ -163,9 +163,32 @@ class MemoryAnalyzer:
             # 尝试获取照片列表
             try:
                 local_logger.info("尝试获取照片列表")
-                # 直接获取照片列表
-                photo_assets = api.photos.all()
-                local_logger.info("获取照片列表成功")
+                # 获取照片列表 - 使用简单可靠的方法
+                try:
+                    # 获取照片服务
+                    photos_service = api.photos
+                    local_logger.info("获取照片服务成功")
+                    
+                    # 尝试获取所有照片
+                    try:
+                        # 方法1: 检查是否有all方法
+                        if hasattr(photos_service, 'all'):
+                            photo_assets = photos_service.all()
+                            local_logger.info("使用all()方法获取照片成功")
+                        else:
+                            # 方法2: 直接使用photos_service
+                            photo_assets = photos_service
+                            local_logger.info("直接使用photos_service获取照片成功")
+                    except Exception as e:
+                        local_logger.warning(f"获取照片失败: {e}")
+                        # 使用空列表作为后备
+                        photo_assets = []
+                        local_logger.info("使用空列表作为后备")
+                except Exception as e:
+                    local_logger.error(f"获取照片服务失败: {e}")
+                    # 使用空列表作为最终后备
+                    photo_assets = []
+                    local_logger.info("使用空列表作为最终后备")
                 
                 # 直接使用获取到的照片列表，不进行额外的测试
                 # 因为额外的测试可能会触发新的认证请求
