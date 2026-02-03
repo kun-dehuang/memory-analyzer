@@ -162,14 +162,46 @@ class MemoryAnalyzer:
             # 尝试获取照片列表
             try:
                 local_logger.info("尝试获取照片列表")
-                # 获取照片列表 - 使用简单可靠的方法
-                # 获取照片服务
-                photos_service = api.photos
-                local_logger.info("获取照片服务成功")
-                photos_assets = photos_service.all
-                # 直接使用获取到的照片列表，不进行额外的测试
-                # 因为额外的测试可能会触发新的认证请求
-                local_logger.info("直接使用获取到的照片列表")
+                
+                # 初始化photos_assets为空列表
+                photos_assets = []
+                
+                try:
+                    # 获取照片服务
+                    photos_service = api.photos
+                    local_logger.info("获取照片服务成功")
+                    
+                    # 尝试获取照片
+                    try:
+                        # 尝试获取all属性
+                        if hasattr(photos_service, 'all'):
+                            all_attr = getattr(photos_service, 'all')
+                            local_logger.info(f"all属性类型: {type(all_attr)}")
+                            
+                            # 尝试转换为列表
+                            try:
+                                photos_assets = list(all_attr)
+                                local_logger.info(f"成功将all属性转换为列表，共 {len(photos_assets)} 张照片")
+                            except Exception as e:
+                                local_logger.warning(f"转换all属性失败: {e}")
+                                # 尝试直接使用
+                                photos_assets = all_attr
+                                local_logger.info("直接使用all属性")
+                        else:
+                            local_logger.warning("photos_service没有all属性")
+                    except Exception as e:
+                        local_logger.warning(f"获取照片失败: {e}")
+                except Exception as e:
+                    local_logger.error(f"获取照片服务失败: {e}")
+                
+                # 确保photos_assets是可迭代的
+                if not hasattr(photos_assets, '__iter__'):
+                    local_logger.warning(f"photos_assets不可迭代，类型: {type(photos_assets)}")
+                    # 使用空列表
+                    photos_assets = []
+                    local_logger.info("使用空列表作为后备")
+                
+                local_logger.info(f"最终获取到的photos_assets类型: {type(photos_assets)}")
             except Exception as e:
                 error_message = str(e)
                 local_logger.error(f"获取照片列表失败: {error_message}")
@@ -185,8 +217,23 @@ class MemoryAnalyzer:
             photos = []
             photo_map = {}
             
+            # 确保photos_assets是列表
+            try:
+                # 尝试转换为列表
+                photos_assets_list = list(photos_assets)
+                local_logger.info(f"成功转换为列表，共 {len(photos_assets_list)} 张照片")
+            except Exception as e:
+                local_logger.warning(f"转换为列表失败: {e}")
+                # 使用空列表
+                photos_assets_list = []
+                local_logger.info("使用空列表")
+            
+            # 限制数量
+            limited_photos = photos_assets_list[:1000]
+            local_logger.info(f"限制后剩余 {len(limited_photos)} 张照片")
+            
             # 转换为与原来格式兼容的结构
-            for i, photo in enumerate(photos_assets[:1000]):  # 限制数量
+            for i, photo in enumerate(limited_photos):
                 photo_id = getattr(photo, 'id', f"photo_{i}")
                 photo_filename = getattr(photo, 'filename', f"photo_{i}")
                 photo_data = {
