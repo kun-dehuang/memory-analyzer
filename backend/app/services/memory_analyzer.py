@@ -93,7 +93,7 @@ class MemoryAnalyzer:
             data_dir = Path("/app/data/icloud_sessions")
             if not data_dir.exists():
                 # 如果在Windows上运行，使用相对路径
-                data_dir = Path("data/icloud_sessions")
+                data_dir = Path("/app/data/icloud_sessions")
             # 创建用户会话目录
             user_session_dir = data_dir / user_id
             user_session_dir.mkdir(parents=True, exist_ok=True)
@@ -102,12 +102,21 @@ class MemoryAnalyzer:
             local_logger.info(f"创建用户会话目录成功: {user_session_dir}")
             
             # 初始化iCloud服务，指定会话目录
-            api = PyiCloudService(
-                apple_id=icloud_email,
-                password=icloud_password,
-                cookie_directory=str(user_session_dir)  # 关键：指定持久化的会话目录
-            )
-            local_logger.info(f"服务实例创建成功，requires_2fa: {api.requires_2fa}")
+            try:
+                api = PyiCloudService(
+                    apple_id=icloud_email,
+                    password=icloud_password,
+                    cookie_directory=str(user_session_dir),  # 关键：指定持久化的会话目录
+                    china_mainland=True
+                )
+                local_logger.info(f"服务实例创建成功，requires_2fa: {api.requires_2fa}")
+            except Exception as e:
+                error_message = str(e)
+                local_logger.error(f"初始化iCloud服务失败: {error_message}")
+                if "Invalid email/password combination" in error_message:
+                    raise Exception("Invalid email/password combination")
+                else:
+                    raise
             
             # 检查是否提供了验证码
             if verification_code:
@@ -130,8 +139,6 @@ class MemoryAnalyzer:
                 time.sleep(2)  # 添加2秒延迟
                 local_logger.info("延迟结束，继续执行分析流程")
                 
-                # 直接继续执行，会话数据已通过文件系统保存
-                session_data = None
             else:
                 # 没有提供验证码，尝试访问照片服务来检测是否需要二次验证
                 local_logger.info("没有提供验证码，测试访问照片服务来检测是否需要二次验证")
@@ -157,8 +164,7 @@ class MemoryAnalyzer:
             try:
                 local_logger.info("尝试获取照片列表")
                 # 直接获取照片列表
-                photos_service = api.photos
-                photo_assets = photos_service.all_assets()
+                photo_assets = api.photos.all()
                 local_logger.info("获取照片列表成功")
                 
                 # 直接使用获取到的照片列表，不进行额外的测试
@@ -270,10 +276,7 @@ class MemoryAnalyzer:
         # 创建局部logger变量，供嵌套函数使用
         local_logger = logger
         
-        # 注意：移除了获取会话数据的代码，因为PyiCloudService对象没有dump_session方法
-        session_data = None
-        
-        def download_photo_sync(photo_id, email, password, session_data=None, photo_map_instance=None):
+        def download_photo_sync(photo_id, email, password, photo_map_instance=None):
             """同步下载照片"""
             try:
                 # 先尝试从 photo_map 中获取照片对象
@@ -308,8 +311,7 @@ class MemoryAnalyzer:
                     return None
                 
                 # 获取所有照片
-                photos_service = api.photos
-                photo_assets = photos_service.all_assets()
+                photo_assets = api.photos.all()
                 
                 # 查找目标照片
                 for photo in photo_assets:
@@ -359,7 +361,6 @@ class MemoryAnalyzer:
                             icloud_photo_id,
                             icloud_email,
                             icloud_password,
-                            session_data,  # 传递会话数据
                             photo_map  # 传递照片映射
                         )
                         
