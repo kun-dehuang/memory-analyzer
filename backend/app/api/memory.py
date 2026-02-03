@@ -144,10 +144,11 @@ async def get_memory_record(
 @router.put("/records/{record_id}/reanalyze")
 async def reanalyze_memory_record(
     record_id: str,
-    icloud_password: str,
     background_tasks: BackgroundTasks,
+    data: dict = Body(..., description="密码数据"),
     current_user: User = Depends(get_current_user)
 ):
+    icloud_password = data.get("icloud_password")
     """重新分析记忆记录"""
     record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
     if not record:
@@ -190,10 +191,11 @@ async def reanalyze_memory_record(
 @router.put("/records/{record_id}/provide-password")
 async def provide_icloud_password(
     record_id: str,
-    icloud_password: str,
     background_tasks: BackgroundTasks,
+    data: dict = Body(..., description="密码数据"),
     current_user: User = Depends(get_current_user)
 ):
+    icloud_password = data.get("icloud_password")
     """提供 iCloud 密码并继续执行分析任务"""
     record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
     if not record:

@@ -150,7 +150,7 @@ class MemoryAnalyzer:
                     error_message = str(e)
                     local_logger.error(f"访问照片服务失败: {error_message}")
                     # 检查是否是认证错误
-                    if "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "Authentication required" in error_message:
+                    if "Missing X-APPLE-WEBAUTH-TOKEN" in error_message or "Authentication required" or "Photos service not available" in error_message:
                         # 认证错误，需要二次验证
                         raise Exception("需要二次验证，请提供验证码")
                     else:
