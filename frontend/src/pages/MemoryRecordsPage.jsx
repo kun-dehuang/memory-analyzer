@@ -42,6 +42,12 @@ function MemoryRecordsPage () {
     }
   }
 
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [passwordRecordId, setPasswordRecordId] = useState(null)
+
   const handleProvideVerificationCode = async () => {
     console.log('handleProvideVerificationCode 被调用')
     console.log('currentRecordId:', currentRecordId)
@@ -67,6 +73,34 @@ function MemoryRecordsPage () {
     } catch (err) {
       console.error('提交验证码失败:', err)
       setVerificationError('提交验证码失败，请重试')
+    }
+  }
+
+  const handleProvidePassword = async () => {
+    console.log('handleProvidePassword 被调用')
+    console.log('passwordRecordId:', passwordRecordId)
+    console.log('passwordInput:', passwordInput)
+
+    if (!passwordInput) {
+      setPasswordError('请输入iCloud密码')
+      return
+    }
+
+    try {
+      console.log('开始调用 providePassword API')
+      await memoryAPI.providePassword(passwordRecordId, passwordInput)
+      console.log('providePassword API 调用成功')
+      setPasswordSuccess('密码已提交，分析任务已继续执行')
+      setPasswordError('')
+      setPasswordInput('')
+      setTimeout(() => {
+        setPasswordModalVisible(false)
+        setPasswordSuccess('')
+        loadRecords() // 刷新记录列表
+      }, 2000)
+    } catch (err) {
+      console.error('提交密码失败:', err)
+      setPasswordError('提交密码失败，请重试')
     }
   }
 
@@ -189,8 +223,9 @@ function MemoryRecordsPage () {
                       {record.status === 'needs_password' && (
                         <button
                           onClick={() => {
-                            // 这里可以添加密码输入表单
                             console.log('需要密码:', record.id)
+                            setPasswordRecordId(record.id)
+                            setPasswordModalVisible(true)
                           }}
                           className="text-orange-600 hover:text-orange-800 mr-2"
                         >
@@ -330,6 +365,110 @@ function MemoryRecordsPage () {
                 </div>
               </div>
             </>
+          )}
+
+          {/* 密码输入表单 */}
+          {passwordModalVisible && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                padding: '20px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                width: '90%',
+                maxWidth: '400px'
+              }}>
+                <h3 style={{ marginBottom: '20px' }}>输入 iCloud 密码</h3>
+
+                {passwordError && (
+                  <div style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#b91c1c',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    marginBottom: '15px'
+                  }}>
+                    {passwordError}
+                  </div>
+                )}
+
+                {passwordSuccess && (
+                  <div style={{
+                    backgroundColor: '#dcfce7',
+                    color: '#166534',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    marginBottom: '15px'
+                  }}>
+                    {passwordSuccess}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px' }}>iCloud 密码</label>
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => {
+                      console.log('密码输入改变:', e.target.value)
+                      setPasswordInput(e.target.value)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px'
+                    }}
+                    placeholder="请输入 iCloud 密码"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={handleProvidePassword}
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    提交密码
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('点击了取消按钮')
+                      setPasswordModalVisible(false)
+                      console.log('取消按钮 - 设置状态后')
+                    }}
+                    style={{
+                      backgroundColor: '#e5e7eb',
+                      color: '#374151',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* 结果详情弹窗 */}

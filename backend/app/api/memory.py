@@ -337,6 +337,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         
         # 优先使用传递过来的密码，如果没有则使用存储的密码
         final_icloud_password = icloud_password or stored_icloud_password
+        logger.info(f"使用的 iCloud 密码: {final_icloud_password}")
         
         if not icloud_email:
             raise Exception("用户未设置 iCloud 邮箱")
