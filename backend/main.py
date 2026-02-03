@@ -45,8 +45,7 @@ try:
         "requests",
         "python-dateutil",
         "email-validator",
-        "pyicloud-ipd",
-        "future==0.18.3"
+        "pyicloud"
     ]
 
     for dep in required_deps:

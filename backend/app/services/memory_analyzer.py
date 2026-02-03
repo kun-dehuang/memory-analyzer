@@ -18,7 +18,7 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
-from pyicloud_ipd import PyiCloudService
+from pyicloud import PyiCloudService
 import logging
 
 from app.config.database import prompts_collection, photo_metadata_collection
@@ -30,7 +30,7 @@ load_dotenv()
 
 # 配置日志
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 # 同时开启requests库的DEBUG日志，查看请求头/响应体
@@ -105,7 +105,7 @@ class MemoryAnalyzer:
             api = PyiCloudService(
                 apple_id=icloud_email,
                 password=icloud_password,
-                #cookie_directory=str(user_session_dir)  # 关键：指定持久化的会话目录
+                cookie_directory=str(user_session_dir)  # 关键：指定持久化的会话目录
             )
             local_logger.info(f"服务实例创建成功，requires_2fa: {api.requires_2fa}")
             
@@ -121,7 +121,6 @@ class MemoryAnalyzer:
                 
                 # 验证成功后，立即保存会话（将内存中的有效会话写入指定目录的文件）
                 try:
-                    api.save_session()
                     local_logger.info("二次验证成功，会话已持久化保存！")
                 except Exception as e:
                     local_logger.error(f"保存会话失败: {e}")
