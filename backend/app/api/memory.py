@@ -391,6 +391,18 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                     }}
                 )
                 return
+            # 检查是否是验证成功后仍然无法访问照片的错误
+            elif "验证成功后，无法访问照片" in error_message:
+                # 这种情况也需要二次验证
+                await memory_records_collection.update_one(
+                    {"_id": record_object_id},
+                    {"$set": {
+                        "status": "needs_verification",
+                        "error_message": "需要 iCloud 二次验证",
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
+                return
             elif "Invalid email/password combination" in error_message:
                 # 如果是邮箱/密码组合错误，将状态更新为需要密码
                 await memory_records_collection.update_one(

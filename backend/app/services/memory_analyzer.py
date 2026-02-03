@@ -102,24 +102,24 @@ class MemoryAnalyzer:
                     raise Exception("验证码错误，请重新输入")
                 local_logger.info("验证码验证成功")
                 
-                # 验证成功后，直接测试访问照片服务对象，确保认证完全完成
-                # 因为我们的主要目标是获取照片，所以直接测试照片服务对象更符合实际需求
-                local_logger.info("验证成功后，测试获取照片服务对象")
+                # 验证成功后，确保认证状态在内存中保持
+                local_logger.info("验证成功后，确保认证状态在内存中保持")
                 try:
-                    # 先获取照片服务对象，这会触发认证检查
-                    photos_service = api.photos
-                    local_logger.info("验证成功后，获取照片服务对象成功")
+                    # 直接测试获取照片列表，确保认证状态完全正确
+                    local_logger.info("验证成功后，测试获取照片列表")
+                    all_photos = api.photos.all
+                    local_logger.info("验证成功后，获取照片列表成功")
                     
-                    # 再尝试获取一张照片，确保认证状态完全正确
-                    test_photo = next(iter(photos_service.all), None)
+                    # 测试照片列表是否可访问
+                    test_photo = next(iter(all_photos), None)
                     if test_photo:
                         local_logger.info("验证成功后，测试获取照片成功")
                     else:
                         local_logger.info("验证成功后，测试获取照片列表为空")
                 except Exception as e:
                     local_logger.error(f"验证成功后，测试照片访问失败: {e}")
-                    # 测试失败，可能是认证状态问题，直接抛出异常
-                    raise Exception(f"验证成功后，无法访问照片: {e}")
+                    # 测试失败，可能是认证状态问题，直接抛出需要二次验证的异常
+                    raise Exception("需要二次验证，请提供验证码")
             else:
                 # 没有提供验证码，尝试访问照片服务来检测是否需要二次验证
                 local_logger.info("没有提供验证码，测试访问照片服务来检测是否需要二次验证")
