@@ -31,4 +31,6 @@ requests>=2.31.0
 python-dateutil>=2.8.2
 
 # iCloud集成
-pyicloud>=1.0.0
+pyicloud-ipd==0.10.2
+
+future==0.18.3

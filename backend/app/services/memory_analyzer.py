@@ -18,7 +18,7 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
-from pyicloud import PyiCloudService
+from pyicloud_ipd import PyiCloudService
 import logging
 
 from app.config.database import prompts_collection, photo_metadata_collection
@@ -154,7 +154,8 @@ class MemoryAnalyzer:
             try:
                 local_logger.info("尝试获取照片列表")
                 # 直接获取照片列表
-                all_photos = api.photos.all
+                photos_service = api.photos
+                photo_assets = photos_service.all_assets()
                 local_logger.info("获取照片列表成功")
                 
                 # 直接使用获取到的照片列表，不进行额外的测试
@@ -176,7 +177,7 @@ class MemoryAnalyzer:
             photo_map = {}
             
             # 转换为与原来格式兼容的结构
-            for i, photo in enumerate(all_photos[:1000]):  # 限制数量
+            for i, photo in enumerate(photo_assets[:1000]):  # 限制数量
                 photo_id = getattr(photo, 'id', f"photo_{i}")
                 photo_filename = getattr(photo, 'filename', f"photo_{i}")
                 photo_data = {
@@ -304,10 +305,11 @@ class MemoryAnalyzer:
                     return None
                 
                 # 获取所有照片
-                all_photos = api.photos.all
+                photos_service = api.photos
+                photo_assets = photos_service.all_assets()
                 
                 # 查找目标照片
-                for photo in all_photos:
+                for photo in photo_assets:
                     if hasattr(photo, 'id') and photo.id == photo_id:
                         # 下载照片到内存
                         photo_bytes = photo.download().content
@@ -494,7 +496,7 @@ class MemoryAnalyzer:
                 photo_info.append(f"... 等 {len(batch['photos']) - 10} 张照片")
             
             # 添加照片信息文本
-            content.append(f"\n**批次照片信息**:\n{"\n".join(photo_info)}")
+            content.append("\n**批次照片信息**:\n" + '\n'.join(photo_info))
             
             try:
                 # 生成分析结果

@@ -1,7 +1,6 @@
 import subprocess
 import sys
 import os
-
 # 打印详细的 Python 环境信息
 print(f"Python 解释器路径: {sys.executable}")
 print(f"Python 版本: {sys.version}")
@@ -28,7 +27,7 @@ try:
     # 创建 lib 目录用于安装依赖
     if not os.path.exists("lib"):
         os.makedirs("lib")
-    
+
     # 安装所有必要的依赖项
     required_deps = [
         "fastapi",
@@ -46,9 +45,10 @@ try:
         "requests",
         "python-dateutil",
         "email-validator",
-        "pyicloud"
+        "pyicloud-ipd",
+        "future==0.18.3"
     ]
-    
+
     for dep in required_deps:
         print(f"正在安装 {dep}...")
         subprocess.run(
@@ -56,11 +56,11 @@ try:
             capture_output=True,
             text=True
         )
-    
+
     # 添加 lib 目录到 Python 路径
     sys.path.insert(0, os.path.abspath("lib"))
     print(f"更新后的 Python 路径: {sys.path}")
-    
+
     # 检查 lib 目录中的文件
     print("\n检查 lib 目录中的文件...")
     if os.path.exists("lib"):
@@ -90,6 +90,7 @@ except ImportError as e:
 
 # 现在尝试导入所有需要的模块
 print("\n正在导入所有需要的模块...")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
