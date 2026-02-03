@@ -185,12 +185,27 @@ class MemoryAnalyzer:
                     
                     # 尝试获取所有照片
                     try:
-                        # 方法1: 检查是否有all方法
+                        # 检查all的类型
                         if hasattr(photos_service, 'all'):
-                            photo_assets = photos_service.all()
-                            local_logger.info("使用all()方法获取照片成功")
+                            all_attr = getattr(photos_service, 'all')
+                            local_logger.info(f"all的类型: {type(all_attr)}")
+                            
+                            # 检查是否是可调用对象
+                            if callable(all_attr):
+                                try:
+                                    photo_assets = photos_service.all()
+                                    local_logger.info("使用all()方法获取照片成功")
+                                except Exception as e:
+                                    local_logger.warning(f"调用all()失败: {e}")
+                                    # 尝试不带括号
+                                    photo_assets = photos_service.all
+                                    local_logger.info("使用photos_service.all获取照片成功")
+                            else:
+                                # 不是可调用的，直接使用
+                                photo_assets = photos_service.all
+                                local_logger.info("直接使用photos_service.all获取照片成功")
                         else:
-                            # 方法2: 直接使用photos_service
+                            # 直接使用photos_service
                             photo_assets = photos_service
                             local_logger.info("直接使用photos_service获取照片成功")
                     except Exception as e:
