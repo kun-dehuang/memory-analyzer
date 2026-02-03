@@ -180,13 +180,60 @@ class MemoryAnalyzer:
                             
                             # 尝试转换为列表
                             try:
-                                photos_assets = list(all_attr)
-                                local_logger.info(f"成功将all属性转换为列表，共 {len(photos_assets)} 张照片")
+                                # 内存监控（可选）
+                                try:
+                                    import psutil
+                                    import os
+                                    process = psutil.Process(os.getpid())
+                                    mem_before = process.memory_info().rss / 1024 / 1024  # MB
+                                    local_logger.info(f"转换前内存使用: {mem_before:.2f} MB")
+                                    has_memory_monitor = True
+                                except ImportError:
+                                    local_logger.warning("psutil未安装，跳过内存监控")
+                                    has_memory_monitor = False
+                                
+                                # 限制照片数量，避免内存溢出
+                                photos_assets = []
+                                count = 0
+                                max_photos = 50  # 限制为50张照片
+                                batch_size = 10  # 每批处理10张
+                                
+                                local_logger.info(f"开始获取照片，限制为 {max_photos} 张")
+                                
+                                # 分批处理
+                                for i, photo in enumerate(all_attr):
+                                    photos_assets.append(photo)
+                                    count += 1
+                                    
+                                    # 每批打印进度
+                                    if count % batch_size == 0:
+                                        local_logger.info(f"已获取 {count} 张照片")
+                                    
+                                    # 达到限制后停止
+                                    if count >= max_photos:
+                                        local_logger.info(f"达到照片数量限制 ({max_photos} 张)")
+                                        break
+                                
+                                # 内存监控
+                                if has_memory_monitor:
+                                    mem_after = process.memory_info().rss / 1024 / 1024  # MB
+                                    local_logger.info(f"转换后内存使用: {mem_after:.2f} MB, 增加: {mem_after - mem_before:.2f} MB")
+                                
+                                local_logger.info(f"成功获取 {len(photos_assets)} 张照片")
+                                
+                                # 验证照片对象
+                                if photos_assets:
+                                    first_photo = photos_assets[0]
+                                    photo_attrs = [attr for attr in dir(first_photo) if not attr.startswith('_')]
+                                    local_logger.info(f"第一张照片类型: {type(first_photo)}")
+                                    local_logger.info(f"照片对象属性: {photo_attrs[:10]}...")  # 只显示前10个属性
                             except Exception as e:
                                 local_logger.warning(f"转换all属性失败: {e}")
-                                # 尝试直接使用
-                                photos_assets = all_attr
-                                local_logger.info("直接使用all属性")
+                                import traceback
+                                traceback.print_exc()
+                                # 使用空列表作为后备
+                                photos_assets = []
+                                local_logger.info("使用空列表作为后备")
                         else:
                             local_logger.warning("photos_service没有all属性")
                     except Exception as e:
