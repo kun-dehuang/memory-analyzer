@@ -159,66 +159,14 @@ class MemoryAnalyzer:
             
             # 2. 从iCloud拉取照片
             local_logger.info("从iCloud拉取照片")
-            
             # 尝试获取照片列表
             try:
                 local_logger.info("尝试获取照片列表")
                 # 获取照片列表 - 使用简单可靠的方法
-                try:
-                    # 获取照片服务
-                    photos_service = api.photos
-                    local_logger.info("获取照片服务成功")
-                    
-                    # 打印photos_service支持的所有方法和属性
-                    try:
-                        methods = [attr for attr in dir(photos_service) if not attr.startswith('_')]
-                        local_logger.info(f"photos_service支持的方法和属性: {methods}")
-                        
-                        # 检查特定的方法
-                        for method_name in ['all', 'all_assets', 'albums', 'photos']:
-                            if hasattr(photos_service, method_name):
-                                local_logger.info(f"photos_service有{method_name}方法")
-                            else:
-                                local_logger.info(f"photos_service没有{method_name}方法")
-                    except Exception as e:
-                        local_logger.warning(f"打印方法列表失败: {e}")
-                    
-                    # 尝试获取所有照片
-                    try:
-                        # 检查all的类型
-                        if hasattr(photos_service, 'all'):
-                            all_attr = getattr(photos_service, 'all')
-                            local_logger.info(f"all的类型: {type(all_attr)}")
-                            
-                            # 检查是否是可调用对象
-                            if callable(all_attr):
-                                try:
-                                    photo_assets = photos_service.all()
-                                    local_logger.info("使用all()方法获取照片成功")
-                                except Exception as e:
-                                    local_logger.warning(f"调用all()失败: {e}")
-                                    # 尝试不带括号
-                                    photo_assets = photos_service.all
-                                    local_logger.info("使用photos_service.all获取照片成功")
-                            else:
-                                # 不是可调用的，直接使用
-                                photo_assets = photos_service.all
-                                local_logger.info("直接使用photos_service.all获取照片成功")
-                        else:
-                            # 直接使用photos_service
-                            photo_assets = photos_service
-                            local_logger.info("直接使用photos_service获取照片成功")
-                    except Exception as e:
-                        local_logger.warning(f"获取照片失败: {e}")
-                        # 使用空列表作为后备
-                        photo_assets = []
-                        local_logger.info("使用空列表作为后备")
-                except Exception as e:
-                    local_logger.error(f"获取照片服务失败: {e}")
-                    # 使用空列表作为最终后备
-                    photo_assets = []
-                    local_logger.info("使用空列表作为最终后备")
-                
+                # 获取照片服务
+                photos_service = api.photos
+                local_logger.info("获取照片服务成功")
+                photos_assets = photos_service.all
                 # 直接使用获取到的照片列表，不进行额外的测试
                 # 因为额外的测试可能会触发新的认证请求
                 local_logger.info("直接使用获取到的照片列表")
@@ -238,7 +186,7 @@ class MemoryAnalyzer:
             photo_map = {}
             
             # 转换为与原来格式兼容的结构
-            for i, photo in enumerate(photo_assets[:1000]):  # 限制数量
+            for i, photo in enumerate(photos_assets[:1000]):  # 限制数量
                 photo_id = getattr(photo, 'id', f"photo_{i}")
                 photo_filename = getattr(photo, 'filename', f"photo_{i}")
                 photo_data = {
@@ -363,7 +311,7 @@ class MemoryAnalyzer:
                     return None
                 
                 # 获取所有照片
-                photo_assets = api.photos.all()
+                photo_assets = api.photos.all
                 
                 # 查找目标照片
                 for photo in photo_assets:
