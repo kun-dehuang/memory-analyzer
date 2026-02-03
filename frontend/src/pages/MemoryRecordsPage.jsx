@@ -104,6 +104,23 @@ function MemoryRecordsPage () {
     }
   }
 
+  const handleDeleteRecord = async (recordId) => {
+    console.log('handleDeleteRecord 被调用，recordId:', recordId)
+    
+    if (window.confirm('确定要删除这条记忆记录吗？此操作不可撤销。')) {
+      try {
+        console.log('开始调用 deleteMemoryRecord API')
+        await memoryAPI.deleteMemoryRecord(recordId)
+        console.log('deleteMemoryRecord API 调用成功')
+        // 删除成功后刷新记录列表
+        loadRecords()
+      } catch (err) {
+        console.error('删除记录失败:', err)
+        setError('删除记录失败，请重试')
+      }
+    }
+  }
+
   const getStatusBadge = (status) => {
     const statusMap = {
       'pending': { text: '等待中', color: 'bg-yellow-100 text-yellow-800' },
@@ -245,6 +262,13 @@ function MemoryRecordsPage () {
                           输入验证码
                         </button>
                       )}
+                      {/* 删除按钮 - 对所有状态的记录都显示 */}
+                      <button
+                        onClick={() => handleDeleteRecord(record.id)}
+                        className="text-red-600 hover:text-red-800 mr-2"
+                      >
+                        删除
+                      </button>
                     </td>
                   </tr>
                 ))}
