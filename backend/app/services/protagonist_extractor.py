@@ -11,13 +11,15 @@ from pathlib import Path
 from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
-
-from ..config.database import prompts_collection
+from datetime import datetime
+from ..config.database import users_collection, prompts_collection
+from bson import ObjectId
 
 load_dotenv()
 
 # 配置Gemini API
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 
 async def get_protagonist_prompt(prompt_group_id: str = None) -> str:
     """
@@ -33,16 +35,16 @@ async def get_protagonist_prompt(prompt_group_id: str = None) -> str:
         query = {"type": "protagonist"}
         if prompt_group_id:
             query["prompt_group_id"] = prompt_group_id
-        
+
         # 按创建时间倒序，获取最新的提示词
         prompt_doc = await prompts_collection.find_one(query, sort=[("created_at", -1)])
-        
+
         if prompt_doc:
             return prompt_doc["content"]
-            
+
     except Exception as e:
         print(f"❌ 从数据库获取提示词失败: {e}")
-    
+
     # Fallback to default prompt
     return """你是一位专业的人像摄影师。请详细描述这张照片中的人物特征。
 
@@ -97,7 +99,10 @@ async def get_protagonist_prompt(prompt_group_id: str = None) -> str:
 
 请直接输出 JSON，不要添加任何其他文字。"""
 
-async def extract_protagonist_features(reference_photo_path: str, prompt_group_id: str = None, user_id: str = None) -> dict:
+
+async def extract_protagonist_features(
+    reference_photo_path: str, prompt_group_id: str = None, user_id: str = None
+) -> dict:
     """
     从参考照片中提取主角特征
 
@@ -109,9 +114,9 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
     Returns:
         主角特征字典
     """
-    print("="*70)
+    print("=" * 70)
     print("🎯 提取主角特征")
-    print("="*70)
+    print("=" * 70)
     print()
 
     if not Path(reference_photo_path).exists():
@@ -129,13 +134,13 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
 
     try:
         # 生成内容
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content([prompt, image])
         raw_output = response.text.strip()
 
         # 提取 JSON
-        if '```json' in raw_output:
-            json_str = raw_output.split('```json')[1].split('```')[0].strip()
+        if "```json" in raw_output:
+            json_str = raw_output.split("```json")[1].split("```")[0].strip()
         else:
             json_str = raw_output
 
@@ -146,30 +151,33 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
         print(f"📅 年龄段: {features['age_group']}")
         print(f"📏 身高估计: {features['appearance']['height_estimate']}")
         print(f"🔍 关键识别特征:")
-        for i, feature in enumerate(features['key_identifiers'], 1):
+        for i, feature in enumerate(features["key_identifiers"], 1):
             print(f"   {i}. {feature}")
         print()
 
         # 如果提供了user_id，将特征存储到数据库
         if user_id:
             try:
-                from datetime import datetime
-                from ..config.database import users_collection
-                
+                # 将字符串类型的user_id转换为ObjectId类型
+                user_id_obj = ObjectId(user_id)
+
                 # 更新用户的主角特征
                 await users_collection.update_one(
-                    {"_id": user_id},
-                    {"$set": {
-                        "protagonist_features": features,
-                        "updated_at": datetime.utcnow()
-                    }}
+                    {"_id": user_id_obj},
+                    {
+                        "$set": {
+                            "protagonist_features": features,
+                            "updated_at": datetime.utcnow(),
+                        }
+                    },
                 )
                 print(f"✅ 主角特征已存储到用户 {user_id} 的数据库记录中")
                 print()
-                
+
             except Exception as db_error:
                 print(f"❌ 存储主角特征到数据库失败: {db_error}")
                 import traceback
+
                 traceback.print_exc()
 
         return features
@@ -177,5 +185,6 @@ async def extract_protagonist_features(reference_photo_path: str, prompt_group_i
     except Exception as e:
         print(f"❌ 特征提取失败: {e}")
         import traceback
+
         traceback.print_exc()
         return None

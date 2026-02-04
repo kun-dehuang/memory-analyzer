@@ -16,6 +16,11 @@ function DashboardPage () {
   const [icloudPassword, setIcloudPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [showPhotoForm, setShowPhotoForm] = useState(false)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoError, setPhotoError] = useState('')
+  const [photoSuccess, setPhotoSuccess] = useState('')
+  const [photoLoading, setPhotoLoading] = useState(false)
 
   // 使用useCallback memoize loadPromptGroups函数
   const loadPromptGroups = useCallback(async () => {
@@ -70,6 +75,33 @@ function DashboardPage () {
     }
   }
 
+  const handleUploadPhoto = async () => {
+    if (!photoFile) {
+      setPhotoError('请选择一张照片')
+      return
+    }
+
+    setPhotoLoading(true)
+    setPhotoError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', photoFile)
+
+      const response = await userAPI.uploadPhoto(user.id, formData)
+
+      setPhotoSuccess('照片上传成功，特征提取完成')
+      setPhotoError('')
+      setPhotoFile(null)
+      setTimeout(() => setPhotoSuccess(''), 3000)
+    } catch (err) {
+      setPhotoError('上传照片失败，请重试')
+      console.error('上传照片失败:', err)
+    } finally {
+      setPhotoLoading(false)
+    }
+  }
+
   const handleGenerateMemory = async () => {
     if (!selectedPromptGroup) {
       setError('请选择一个提示词组')
@@ -111,6 +143,12 @@ function DashboardPage () {
                 className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
               >
                 {showPasswordForm ? '取消' : '设置 iCloud 密码'}
+              </button>
+              <button
+                onClick={() => setShowPhotoForm(!showPhotoForm)}
+                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+              >
+                {showPhotoForm ? '取消' : '上传照片'}
               </button>
               <button
                 onClick={handleLogout}
@@ -166,6 +204,57 @@ function DashboardPage () {
                   setIcloudPassword('')
                   setPasswordError('')
                   setPasswordSuccess('')
+                }}
+                className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 上传照片表单 */}
+        {showPhotoForm && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-2xl font-bold mb-6">上传个人照片</h2>
+
+            {photoError && (
+              <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+                {photoError}
+              </div>
+            )}
+
+            {photoSuccess && (
+              <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+                {photoSuccess}
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-gray-700 mb-2">选择照片</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhotoFile(e.target.files[0])}
+                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-sm text-gray-500 mt-2">请上传一张清晰的个人照片，用于提取特征并在后续分析中识别您</p>
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={handleUploadPhoto}
+                className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                disabled={photoLoading}
+              >
+                {photoLoading ? '上传中...' : '上传照片'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPhotoForm(false)
+                  setPhotoFile(null)
+                  setPhotoError('')
+                  setPhotoSuccess('')
                 }}
                 className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
               >
