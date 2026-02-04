@@ -228,6 +228,37 @@ function ResultDetailPage () {
                       <p className="italic">{record.phase2_result.L6_Hooks.story_trigger != null ? String(record.phase2_result.L6_Hooks.story_trigger) : '未知'}</p>
                     </div>
                   )}
+
+                  {/* JSON 格式原始输出 */}
+                  <details className="mt-6">
+                    <summary className="text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800">
+                      查看 JSON 格式原始输出
+                    </summary>
+                    <div className="mt-3 p-4 bg-gray-50 rounded-lg overflow-x-auto">
+                      <pre className="text-xs text-gray-700 whitespace-pre-wrap">
+                        {(() => {
+                          // 检查是否有原始输出并且包含 JSON 代码块
+                          if (record.phase2_result.raw_output) {
+                            const rawOutput = record.phase2_result.raw_output
+                            // 尝试提取 JSON 代码块
+                            const jsonMatch = rawOutput.match(/```json\s*([\s\S]*?)\s*```/)
+                            if (jsonMatch) {
+                              try {
+                                const jsonContent = jsonMatch[1]
+                                const parsedJson = JSON.parse(jsonContent)
+                                return JSON.stringify(parsedJson, null, 2)
+                              } catch (e) {
+                                // JSON 解析失败，使用原始结果
+                                return JSON.stringify(record.phase2_result, null, 2)
+                              }
+                            }
+                          }
+                          // 默认使用整个 phase2_result 对象
+                          return JSON.stringify(record.phase2_result, null, 2)
+                        })()}
+                      </pre>
+                    </div>
+                  </details>
                 </div>
               )}
 
@@ -235,15 +266,151 @@ function ResultDetailPage () {
               {record.phase1_results && record.phase1_results.length > 0 && (
                 <div className="border rounded p-4">
                   <h3 className="text-lg font-medium mb-3">详细分析记录</h3>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {record.phase1_results.map((phase1, index) => (
-                      <div key={index} className="border-l-4 border-blue-500 pl-4">
-                        <h4 className="font-medium">{phase1.batch_id}</h4>
-                        <p className="text-sm text-gray-600">{phase1.processed_at}</p>
-                        <p className="text-sm text-gray-600">{phase1.image_count} 张照片</p>
-                        <div className="mt-2 text-sm bg-gray-50 p-2 rounded">
-                          <pre>{phase1.raw_vlm_output.substring(0, 300)}...</pre>
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium text-blue-600">{phase1.batch_id}</h4>
+                          <div className="text-sm text-gray-600">
+                            <span>{phase1.image_count} 张照片</span>
+                            <span className="mx-2">•</span>
+                            <span>{phase1.processed_at}</span>
+                          </div>
                         </div>
+
+                        {/* 分析摘要 */}
+                        {phase1.analysis_summary && (
+                          <div className="mb-4">
+                            <h5 className="text-sm font-medium mb-2">分析摘要</h5>
+                            <p className="text-sm text-gray-600">{phase1.analysis_summary}</p>
+                          </div>
+                        )}
+
+                        {/* 原始输出 - 美化展示 */}
+                        {phase1.raw_vlm_output && (
+                          <details className="mt-4">
+                            <summary className="text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800">
+                              查看详细分析结果
+                            </summary>
+                            <div className="mt-3 p-4 bg-gray-50 rounded-lg">
+                              {/* 尝试解析并美化原始输出 */}
+                              {(() => {
+                                const rawOutput = phase1.raw_vlm_output
+
+                                // 检查是否包含主角识别部分
+                                if (rawOutput.includes('0. 主角识别') || rawOutput.includes('主角识别')) {
+                                  // 按段落分割
+                                  const paragraphs = rawOutput.split('\n\n').filter(p => p.trim())
+
+                                  return paragraphs.map((paragraph, paraIndex) => {
+                                    // 检查是否是标题
+                                    if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                                      return (
+                                        <div key={paraIndex} className="mb-4">
+                                          <h6 className="text-md font-bold mb-2">{paragraph.replace(/\*/g, '')}</h6>
+                                        </div>
+                                      )
+                                    }
+
+                                    // 检查是否是列表项
+                                    if (paragraph.startsWith('*   **')) {
+                                      const lines = paragraph.split('\n')
+                                      return (
+                                        <div key={paraIndex} className="mb-3">
+                                          {lines.map((line, lineIndex) => {
+                                            if (line.startsWith('*   **')) {
+                                              const parts = line.split(': ')
+                                              const title = parts[0].replace(/\*|\s/g, '')
+                                              const content = parts.slice(1).join(': ')
+                                              return (
+                                                <div key={lineIndex} className="mb-2">
+                                                  <strong className="text-gray-700">{title}:</strong> {content}
+                                                </div>
+                                              )
+                                            }
+                                            if (line.startsWith('    *   **')) {
+                                              const parts = line.split(': ')
+                                              const title = parts[0].replace(/\*|\s/g, '')
+                                              const content = parts.slice(1).join(': ')
+                                              return (
+                                                <div key={lineIndex} className="ml-6 mb-1">
+                                                  <strong className="text-gray-700">{title}:</strong> {content}
+                                                </div>
+                                              )
+                                            }
+                                            if (line.startsWith('    *   ')) {
+                                              return (
+                                                <div key={lineIndex} className="ml-6 mb-1">
+                                                  {line.replace('    *   ', '')}
+                                                </div>
+                                              )
+                                            }
+                                            return (
+                                              <div key={lineIndex} className="ml-4">
+                                                {line}
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      )
+                                    }
+
+                                    // 检查是否是照片描述标题
+                                    if (paragraph.match(/^\*\*\d+\. [^*]+\*\*$/)) {
+                                      return (
+                                        <div key={paraIndex} className="mb-4">
+                                          <h6 className="text-md font-bold mb-2">{paragraph.replace(/\*/g, '')}</h6>
+                                        </div>
+                                      )
+                                    }
+
+                                    // 检查是否是照片描述内容
+                                    if (paragraph.includes('**场景与环境**') || paragraph.includes('**人物与互动**')) {
+                                      const lines = paragraph.split('\n')
+                                      return (
+                                        <div key={paraIndex} className="mb-4 ml-4">
+                                          {lines.map((line, lineIndex) => {
+                                            if (line.startsWith('*   **')) {
+                                              const parts = line.split(': ')
+                                              const title = parts[0].replace(/\*|\s/g, '')
+                                              const content = parts.slice(1).join(': ')
+                                              return (
+                                                <div key={lineIndex} className="mb-2">
+                                                  <strong className="text-gray-700">{title}:</strong> {content}
+                                                </div>
+                                              )
+                                            }
+                                            return (
+                                              <div key={lineIndex} className="ml-4">
+                                                {line}
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      )
+                                    }
+
+                                    // 默认展示
+                                    return (
+                                      <div key={paraIndex} className="mb-3">
+                                        {paragraph}
+                                      </div>
+                                    )
+                                  })
+                                } else {
+                                  // 如果不是预期格式，就按原样展示，但确保有适当的分行
+                                  return (
+                                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                      {rawOutput.split('\n').map((line, lineIndex) => (
+                                        <div key={lineIndex}>{line}</div>
+                                      ))}
+                                    </div>
+                                  )
+                                }
+                              })()}
+                            </div>
+                          </details>
+                        )}
                       </div>
                     ))}
                   </div>
