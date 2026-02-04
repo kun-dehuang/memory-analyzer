@@ -136,13 +136,13 @@ function ResultDetailPage () {
                   {record.phase2_result.meta && (
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">分析摘要</h4>
-                      <p>{record.phase2_result.meta.scan_summary}</p>
-                      {record.phase2_result.meta.timeline_chapters && (
+                      <p>{record.phase2_result.meta.scan_summary != null ? String(record.phase2_result.meta.scan_summary) : '未知'}</p>
+                      {record.phase2_result.meta.timeline_chapters && Array.isArray(record.phase2_result.meta.timeline_chapters) && (
                         <div className="mt-2">
                           <h5 className="text-sm font-medium mb-1">时间线章节</h5>
                           <ul className="list-disc pl-5">
                             {record.phase2_result.meta.timeline_chapters.map((chapter, index) => (
-                              <li key={index}>{chapter}</li>
+                              <li key={index}>{chapter != null ? String(chapter) : '未知'}</li>
                             ))}
                           </ul>
                         </div>
@@ -154,8 +154,8 @@ function ResultDetailPage () {
                   {record.phase2_result.L1_Spatio_Temporal && (
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">时空分析</h4>
-                      <p><span className="text-gray-600">活动范围:</span> {record.phase2_result.L1_Spatio_Temporal.life_radius}</p>
-                      <p><span className="text-gray-600">生物时钟:</span> {record.phase2_result.L1_Spatio_Temporal.biological_clock}</p>
+                      <p><span className="text-gray-600">活动范围:</span> {record.phase2_result.L1_Spatio_Temporal.life_radius != null ? String(record.phase2_result.L1_Spatio_Temporal.life_radius) : '未知'}</p>
+                      <p><span className="text-gray-600">生物时钟:</span> {record.phase2_result.L1_Spatio_Temporal.biological_clock != null ? String(record.phase2_result.L1_Spatio_Temporal.biological_clock) : '未知'}</p>
                     </div>
                   )}
 
@@ -163,25 +163,40 @@ function ResultDetailPage () {
                   {record.phase2_result.L3_Social_Graph && (
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">社交网络</h4>
-                      {record.phase2_result.L3_Social_Graph.core_circle && record.phase2_result.L3_Social_Graph.core_circle.length > 0 && (
+                      {record.phase2_result.L3_Social_Graph.core_circle && Array.isArray(record.phase2_result.L3_Social_Graph.core_circle) && record.phase2_result.L3_Social_Graph.core_circle.length > 0 && (
                         <div className="mt-2">
                           <h5 className="text-sm font-medium mb-1">核心社交圈</h5>
                           <ul className="list-disc pl-5">
-                            {record.phase2_result.L3_Social_Graph.core_circle.map((person, index) => (
-                              <li key={index}>
-                                {person.name_id}: {person.relation} ({person.frequency})
-                              </li>
-                            ))}
+                            {record.phase2_result.L3_Social_Graph.core_circle.map((person, index) => {
+                              // 确保person是一个对象
+                              if (typeof person !== 'object' || person === null) {
+                                return <li key={index}>{String(person)}</li>
+                              }
+
+                              // 安全地获取所有属性
+                              const name_id = person.name_id != null ? String(person.name_id) : '未知'
+                              const relation = person.relation != null ? String(person.relation) : '未知'
+                              const frequency = person.frequency != null ? String(person.frequency) : '未知'
+                              const status = person.status != null ? String(person.status) : ''
+
+                              return (
+                                <li key={index}>
+                                  {name_id}: {relation} ({frequency})
+                                  {status && <span className="ml-2 text-gray-500">状态: {status}</span>}
+                                </li>
+                              )
+                            })}
                           </ul>
                         </div>
                       )}
-                      {record.phase2_result.L3_Social_Graph.relationship_dynamics && record.phase2_result.L3_Social_Graph.relationship_dynamics.length > 0 && (
+                      {record.phase2_result.L3_Social_Graph.relationship_dynamics && Array.isArray(record.phase2_result.L3_Social_Graph.relationship_dynamics) && record.phase2_result.L3_Social_Graph.relationship_dynamics.length > 0 && (
                         <div className="mt-2">
                           <h5 className="text-sm font-medium mb-1">关系动态</h5>
                           <ul className="list-disc pl-5">
-                            {record.phase2_result.L3_Social_Graph.relationship_dynamics.map((dynamic, index) => (
-                              <li key={index}>{dynamic}</li>
-                            ))}
+                            {record.phase2_result.L3_Social_Graph.relationship_dynamics.map((dynamic, index) => {
+                              // 安全地渲染动态
+                              return <li key={index}>{dynamic != null ? String(dynamic) : '未知'}</li>
+                            })}
                           </ul>
                         </div>
                       )}
@@ -192,8 +207,8 @@ function ResultDetailPage () {
                   {record.phase2_result.L4_Behavior_Trends && (
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">行为趋势</h4>
-                      <p><span className="text-gray-600">社交形象:</span> {record.phase2_result.L4_Behavior_Trends.social_mask}</p>
-                      <p><span className="text-gray-600">消费变化:</span> {record.phase2_result.L4_Behavior_Trends.consumption_shift}</p>
+                      <p><span className="text-gray-600">社交形象:</span> {record.phase2_result.L4_Behavior_Trends.social_mask != null ? String(record.phase2_result.L4_Behavior_Trends.social_mask) : '未知'}</p>
+                      <p><span className="text-gray-600">消费变化:</span> {record.phase2_result.L4_Behavior_Trends.consumption_shift != null ? String(record.phase2_result.L4_Behavior_Trends.consumption_shift) : '未知'}</p>
                     </div>
                   )}
 
@@ -201,8 +216,8 @@ function ResultDetailPage () {
                   {record.phase2_result.L5_Psychology && (
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">心理分析</h4>
-                      <p><span className="text-gray-600">人格类型:</span> {record.phase2_result.L5_Psychology.personality_type}</p>
-                      <p><span className="text-gray-600">情绪曲线:</span> {record.phase2_result.L5_Psychology.emotional_curve}</p>
+                      <p><span className="text-gray-600">人格类型:</span> {record.phase2_result.L5_Psychology.personality_type != null ? String(record.phase2_result.L5_Psychology.personality_type) : '未知'}</p>
+                      <p><span className="text-gray-600">情绪曲线:</span> {record.phase2_result.L5_Psychology.emotional_curve != null ? String(record.phase2_result.L5_Psychology.emotional_curve) : '未知'}</p>
                     </div>
                   )}
 
@@ -210,7 +225,7 @@ function ResultDetailPage () {
                   {record.phase2_result.L6_Hooks && (
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">故事触发点</h4>
-                      <p className="italic">{record.phase2_result.L6_Hooks.story_trigger}</p>
+                      <p className="italic">{record.phase2_result.L6_Hooks.story_trigger != null ? String(record.phase2_result.L6_Hooks.story_trigger) : '未知'}</p>
                     </div>
                   )}
                 </div>

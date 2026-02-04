@@ -589,9 +589,16 @@ function MemoryRecordsPage () {
                                 <span className="font-medium">核心社交圈：</span>
                                 {selectedRecord.phase2_result.L3_Social_Graph.core_circle.length > 0 ? (
                                   <ul className="list-disc list-inside mt-1">
-                                    {selectedRecord.phase2_result.L3_Social_Graph.core_circle.map((person, index) => (
-                                      <li key={index}>{person}</li>
-                                    ))}
+                                    {selectedRecord.phase2_result.L3_Social_Graph.core_circle.map((person, index) => {
+                                      if (typeof person === 'object' && person !== null) {
+                                        const name_id = person.name_id != null ? String(person.name_id) : '未知'
+                                        const relation = person.relation != null ? String(person.relation) : '未知'
+                                        const frequency = person.frequency != null ? String(person.frequency) : '未知'
+                                        return <li key={index}>{name_id}: {relation} ({frequency})</li>
+                                      } else {
+                                        return <li key={index}>{String(person)}</li>
+                                      }
+                                    })}
                                   </ul>
                                 ) : (
                                   <span className="text-gray-400">暂无数据</span>

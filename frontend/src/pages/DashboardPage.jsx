@@ -88,7 +88,7 @@ function DashboardPage () {
       const formData = new FormData()
       formData.append('file', photoFile)
 
-      const response = await userAPI.uploadPhoto(user.id, formData)
+      await userAPI.uploadPhoto(user.id, formData)
 
       setPhotoSuccess('照片上传成功，特征提取完成')
       setPhotoError('')
