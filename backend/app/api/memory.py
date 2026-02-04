@@ -51,7 +51,8 @@ async def get_memory_records(
             "updated_at": record["updated_at"],
             "completed_at": record.get("completed_at"),
             "image_count": record.get("image_count", 0),
-            "time_range": record.get("time_range")
+            "time_range": record.get("time_range"),
+            "stats": record.get("stats")
         }
         records.append(MemoryRecord(**record_dict))
     
@@ -135,7 +136,8 @@ async def get_memory_record(
         "updated_at": record["updated_at"],
         "completed_at": record.get("completed_at"),
         "image_count": record.get("image_count", 0),
-        "time_range": record.get("time_range")
+        "time_range": record.get("time_range"),
+        "stats": record.get("stats")
     }
     
     return MemoryRecord(**record_dict)
@@ -358,7 +360,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         # 执行分析
         analyzer = MemoryAnalyzer()
         try:
-            phase1_results, phase2_result, image_count, time_range = await analyzer.analyze(
+            phase1_results, phase2_result, image_count, time_range, stats = await analyzer.analyze(
                 user_id=user_id,
                 prompt_group_id=prompt_group_id,
                 icloud_email=icloud_email,
@@ -366,8 +368,8 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                 verification_code=verification_code,
                 protagonist_features=user.get("protagonist_features")
             )
-            
-            # 不再需要保存会话数据，因为会话数据已通过文件系统持久化
+        
+        # 不再需要保存会话数据，因为会话数据已通过文件系统持久化
         except Exception as e:
             error_message = str(e)
             logger.error(f"分析异常: {error_message}")
@@ -416,6 +418,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         print(f"分析完成 - phase2_result: {type(phase2_result)}")
         print(f"分析完成 - image_count: {image_count}")
         print(f"分析完成 - time_range: {time_range}")
+        print(f"分析完成 - stats: {stats}")
         
         # 更新分析结果
         update_result = await memory_records_collection.update_one(
@@ -426,6 +429,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                 "phase2_result": phase2_result,
                 "image_count": image_count,
                 "time_range": time_range,
+                "stats": stats,
                 "completed_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }}

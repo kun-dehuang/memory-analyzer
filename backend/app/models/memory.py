@@ -27,6 +27,7 @@ class MemoryRecord(MemoryRecordBase):
     completed_at: Optional[datetime] = None
     image_count: int = 0
     time_range: Optional[Tuple[str, str]] = None
+    stats: Optional[Dict[str, Any]] = None
     
     class Config:
         from_attributes = True

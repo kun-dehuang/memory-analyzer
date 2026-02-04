@@ -63,7 +63,9 @@ class MemoryAnalyzer:
         icloud_password: str,
         verification_code: Optional[str] = None,
         protagonist_features: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str]]:
+    ) -> Tuple[
+        List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str], Dict[str, Any]
+    ]:
         """
         执行完整的记忆分析流程
 
@@ -85,6 +87,24 @@ class MemoryAnalyzer:
 
         # 创建局部logger变量，确保在异常处理中也能使用
         local_logger = logger
+
+        # 初始化统计信息
+        stats = {
+            "total_time": 0,
+            "download_time": 0,
+            "filter_time": 0,
+            "phase1_time": 0,
+            "phase1_tokens": 0,
+            "phase1_prompt_tokens": 0,
+            "phase1_candidates_tokens": 0,
+            "phase2_time": 0,
+            "phase2_tokens": 0,
+            "phase2_prompt_tokens": 0,
+            "phase2_candidates_tokens": 0,
+        }
+
+        # 记录开始时间
+        start_time = time.time()
 
         local_logger.info("开始记忆分析流程")
 
@@ -335,9 +355,11 @@ class MemoryAnalyzer:
 
             # 3. 过滤照片
             local_logger.info("过滤照片")
-            filtered_photos = await self.photo_filter.filter(
+            filtered_photos, filter_time = await self.photo_filter.filter(
                 photos=photos, user_id=user_id, photo_map=photo_map
             )
+            # 记录过滤耗时
+            stats["filter_time"] = filter_time
 
             filtered_count = len(filtered_photos)
             local_logger.info(f"过滤后剩余 {filtered_count} 张照片")
@@ -347,13 +369,15 @@ class MemoryAnalyzer:
 
             # 4. 提取EXIF信息
             local_logger.info("提取照片EXIF信息")
-            photo_metadata = await self._extract_metadata(
+            photo_metadata, download_time = await self._extract_metadata(
                 filtered_photos,
                 icloud_email=icloud_email,
                 icloud_password=icloud_password,
                 api=api,  # 传递已验证的api实例
                 photo_map=photo_map,  # 传递照片映射，避免重复API调用
             )
+            # 记录下载耗时
+            stats["download_time"] = download_time
 
             # 5. 按时间分组
             local_logger.info("按时间分组")
@@ -365,23 +389,57 @@ class MemoryAnalyzer:
 
             # 7. 执行Phase 1分析
             local_logger.info("执行Phase 1分析")
-            phase1_results = await self._execute_phase1(
+            (
+                phase1_results,
+                phase1_time,
+                phase1_tokens,
+                phase1_prompt_tokens,
+                phase1_candidates_tokens,
+            ) = await self._execute_phase1(
                 batches=batches,
                 prompts=prompts,
                 protagonist_features=protagonist_features,
             )
+            # 记录Phase 1耗时和token消耗
+            stats["phase1_time"] = phase1_time
+            stats["phase1_tokens"] = phase1_tokens
+            stats["phase1_prompt_tokens"] = phase1_prompt_tokens
+            stats["phase1_candidates_tokens"] = phase1_candidates_tokens
 
             # 8. 执行Phase 2分析
             local_logger.info("执行Phase 2分析")
-            phase2_result = await self._execute_phase2(
+            (
+                phase2_result,
+                phase2_time,
+                phase2_tokens,
+                phase2_prompt_tokens,
+                phase2_candidates_tokens,
+            ) = await self._execute_phase2(
                 phase1_results=phase1_results, prompts=prompts
             )
+            # 记录Phase 2耗时和token消耗
+            stats["phase2_time"] = phase2_time
+            stats["phase2_tokens"] = phase2_tokens
+            stats["phase2_prompt_tokens"] = phase2_prompt_tokens
+            stats["phase2_candidates_tokens"] = phase2_candidates_tokens
 
             # 9. 计算时间范围
             time_range = self._calculate_time_range(photo_metadata)
 
+            # 计算总耗时
+            stats["total_time"] = time.time() - start_time
+            local_logger.info(f"记忆分析总耗时: {stats['total_time']:.2f} 秒")
+            local_logger.info(f"下载图片耗时: {stats['download_time']:.2f} 秒")
+            local_logger.info(f"过滤图片耗时: {stats['filter_time']:.2f} 秒")
+            local_logger.info(
+                f"Phase 1 分析耗时: {stats['phase1_time']:.2f} 秒, Token消耗: {stats['phase1_tokens']}"
+            )
+            local_logger.info(
+                f"Phase 2 分析耗时: {stats['phase2_time']:.2f} 秒, Token消耗: {stats['phase2_tokens']}"
+            )
+
             local_logger.info("记忆分析流程完成")
-            return phase1_results, phase2_result, filtered_count, time_range
+            return phase1_results, phase2_result, filtered_count, time_range, stats
 
         except Exception as e:
             local_logger.error(f"分析失败: {e}")
@@ -394,7 +452,7 @@ class MemoryAnalyzer:
         icloud_password: str,
         api=None,
         photo_map=None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], float]:
         """提取照片元数据"""
         metadata_list = []
 
@@ -405,6 +463,9 @@ class MemoryAnalyzer:
 
         # 创建局部logger变量，供嵌套函数使用
         local_logger = logger
+
+        # 记录开始时间
+        start_time = time.time()
 
         def download_photo_sync(photo_id, email, password, photo_map_instance=None):
             """同步下载照片"""
@@ -510,8 +571,12 @@ class MemoryAnalyzer:
             if result:
                 metadata_list.append(result)
 
-        local_logger.info(f"照片处理完成，共处理 {len(metadata_list)} 张照片")
-        return metadata_list
+        # 计算下载耗时
+        download_time = time.time() - start_time
+        local_logger.info(
+            f"照片处理完成，共处理 {len(metadata_list)} 张照片, 耗时: {download_time:.2f} 秒"
+        )
+        return metadata_list, download_time
 
     def _group_by_time(self, photos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """按时间分组"""
@@ -595,7 +660,7 @@ class MemoryAnalyzer:
         batches: List[Dict[str, Any]],
         prompts: Dict[str, str],
         protagonist_features: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], float, int, int, int]:
         """执行Phase 1分析"""
         phase1_results = []
 
@@ -606,6 +671,12 @@ class MemoryAnalyzer:
 
         # 创建局部logger变量，确保在异常处理中也能使用
         local_logger = logger
+
+        # 记录开始时间
+        start_time = time.time()
+        total_tokens = 0
+        prompt_tokens = 0
+        candidates_tokens = 0
 
         for batch in batches:
             local_logger.info(
@@ -675,6 +746,23 @@ class MemoryAnalyzer:
                 response = model.generate_content(content)
                 raw_output = response.text.strip()
 
+                # 统计token消耗
+                try:
+                    if hasattr(response, "usage_metadata"):
+                        usage = response.usage_metadata
+                        if hasattr(usage, "total_token_count"):
+                            total = usage.total_token_count
+                            prompt = getattr(usage, "prompt_token_count", 0)
+                            candidates = getattr(usage, "candidates_token_count", 0)
+                            total_tokens += total
+                            prompt_tokens += prompt
+                            candidates_tokens += candidates
+                            local_logger.info(
+                                f"批次 {batch['batch_id']} Token消耗: 总={total}, 输入={prompt}, 输出={candidates}"
+                            )
+                except Exception as e:
+                    local_logger.warning(f"统计Token消耗失败: {e}")
+
                 # 构建结果
                 result = {
                     "batch_id": batch["batch_id"],
@@ -709,11 +797,23 @@ class MemoryAnalyzer:
 
             phase1_results.append(result)
 
-        return phase1_results
+        # 计算耗时和总token消耗
+        phase1_time = time.time() - start_time
+        local_logger.info(
+            f"Phase 1 分析完成，总耗时: {phase1_time:.2f} 秒, 总Token消耗: {total_tokens}, 输入Token消耗: {prompt_tokens}, 输出Token消耗: {candidates_tokens}"
+        )
+
+        return (
+            phase1_results,
+            phase1_time,
+            total_tokens,
+            prompt_tokens,
+            candidates_tokens,
+        )
 
     async def _execute_phase2(
         self, phase1_results: List[Dict[str, Any]], prompts: Dict[str, str]
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], float, int, int, int]:
         """执行Phase 2分析"""
         # 确保logger已定义
         if "logger" not in globals():
@@ -723,6 +823,9 @@ class MemoryAnalyzer:
         # 创建局部logger变量，确保在异常处理中也能使用
         local_logger = logger
 
+        # 记录开始时间
+        start_time = time.time()
+        total_tokens, prompt_tokens, candidates_tokens = 0, 0, 0
         # 构建提示词
         phase2_prompt = prompts.get("phase2", self._get_default_phase2_prompt())
         local_logger.info(
@@ -754,6 +857,23 @@ class MemoryAnalyzer:
                 raise ValueError("响应不包含有效的内容")
 
             raw_output = response.text.strip()
+
+            # 统计token消耗
+            try:
+                if hasattr(response, "usage_metadata"):
+                    usage = response.usage_metadata
+                    if hasattr(usage, "total_token_count"):
+                        total = usage.total_token_count
+                        prompt = getattr(usage, "prompt_token_count", 0)
+                        candidates = getattr(usage, "candidates_token_count", 0)
+                        total_tokens += total
+                        prompt_tokens += prompt
+                        candidates_tokens += candidates
+                        local_logger.info(
+                            f"Phase 2 Token消耗: 总={total}, 输入={prompt}, 输出={candidates}"
+                        )
+            except Exception as e:
+                local_logger.warning(f"统计Token消耗失败: {e}")
 
             # 解析分析结果
             result = self._parse_phase2_output(raw_output)
@@ -787,7 +907,13 @@ class MemoryAnalyzer:
                 "error": str(e),
             }
 
-        return result
+        # 计算耗时和总token消耗
+        phase2_time = time.time() - start_time
+        local_logger.info(
+            f"Phase 2 分析完成，总耗时: {phase2_time:.2f} 秒, 总Token消耗: {total_tokens}, 输入Token消耗: {prompt_tokens}, 输出Token消耗: {candidates_tokens}"
+        )
+
+        return result, phase2_time, total_tokens, prompt_tokens, candidates_tokens
 
     def _extract_summary(self, text: str) -> str:
         """从分析结果中提取摘要"""

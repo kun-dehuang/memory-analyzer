@@ -648,6 +648,37 @@ function MemoryRecordsPage () {
                     </div>
                   )}
 
+                  {/* 统计信息 */}
+                  {selectedRecord.stats && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold mb-3 text-green-600">统计信息</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border rounded-lg p-4">
+                          <h5 className="font-medium mb-2">耗时统计</h5>
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div><span className="font-medium">总耗时：</span>{selectedRecord.stats.total_time?.toFixed(2) || 0} 秒</div>
+                            <div><span className="font-medium">下载图片耗时：</span>{selectedRecord.stats.download_time?.toFixed(2) || 0} 秒</div>
+                            <div><span className="font-medium">过滤图片耗时：</span>{selectedRecord.stats.filter_time?.toFixed(2) || 0} 秒</div>
+                            <div><span className="font-medium">Phase 1 分析耗时：</span>{selectedRecord.stats.phase1_time?.toFixed(2) || 0} 秒</div>
+                            <div><span className="font-medium">Phase 2 分析耗时：</span>{selectedRecord.stats.phase2_time?.toFixed(2) || 0} 秒</div>
+                          </div>
+                        </div>
+                        <div className="border rounded-lg p-4">
+                          <h5 className="font-medium mb-2">Token 消耗</h5>
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div><span className="font-medium">Phase 1 总Token消耗：</span>{selectedRecord.stats.phase1_tokens || 0}</div>
+                            <div><span className="font-medium">Phase 1 输入Token消耗：</span>{selectedRecord.stats.phase1_prompt_tokens || 0}</div>
+                            <div><span className="font-medium">Phase 1 输出Token消耗：</span>{selectedRecord.stats.phase1_candidates_tokens || 0}</div>
+                            <div className="border-t border-gray-200 my-2"></div>
+                            <div><span className="font-medium">Phase 2 总Token消耗：</span>{selectedRecord.stats.phase2_tokens || 0}</div>
+                            <div><span className="font-medium">Phase 2 输入Token消耗：</span>{selectedRecord.stats.phase2_prompt_tokens || 0}</div>
+                            <div><span className="font-medium">Phase 2 输出Token消耗：</span>{selectedRecord.stats.phase2_candidates_tokens || 0}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {!selectedRecord.phase1_results && !selectedRecord.phase2_result && (
                     <div className="text-center py-8 text-gray-500">
                       暂无分析结果
