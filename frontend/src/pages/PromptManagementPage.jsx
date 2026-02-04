@@ -53,6 +53,8 @@ function PromptManagementPage () {
     ]
   })
 
+  console.log('初始newGroup状态:', newGroup)
+
   // 加载提示词组
   useEffect(() => {
     loadPromptGroups()
@@ -73,9 +75,32 @@ function PromptManagementPage () {
     setError('')
 
     try {
+      console.log('提交的提示词组数据:', newGroup)
+      console.log('提交的提示词数量:', newGroup.prompts.length)
+      console.log('Phase 1 提示词:', newGroup.prompts[0])
+      console.log('Phase 2 提示词:', newGroup.prompts[1])
       await promptAPI.createPromptGroup(newGroup)
       setShowAddGroupModal(false)
-      setNewGroup({ name: '', description: '' })
+      setNewGroup({
+        name: '',
+        description: '',
+        prompts: [
+          {
+            name: 'Phase 1',
+            content: defaultPrompts.phase1,
+            type: 'phase1',
+            description: '记忆分析第一阶段提示词',
+            variables: []
+          },
+          {
+            name: 'Phase 2',
+            content: defaultPrompts.phase2,
+            type: 'phase2',
+            description: '记忆分析第二阶段提示词',
+            variables: []
+          }
+        ]
+      })
       loadPromptGroups()
     } catch (err) {
       setError('创建提示词组失败')

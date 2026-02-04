@@ -690,16 +690,6 @@ class MemoryAnalyzer:
             )
             local_logger.info(f"Phase 1提示词内容: {phase1_prompt}")
 
-            # 准备批处理信息
-            batch_info = {
-                "batch_id": batch["batch_id"],
-                "image_count": batch["image_count"],
-                "time_range": {
-                    "start": batch["time_range"][0].isoformat(),
-                    "end": batch["time_range"][1].isoformat(),
-                },
-            }
-
             # 如果有主角特征，添加到提示词中
             if protagonist_features:
                 phase1_prompt += f"\n\n**主角特征**:\n{json.dumps(protagonist_features, ensure_ascii=False)}"
