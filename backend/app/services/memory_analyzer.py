@@ -1023,17 +1023,6 @@ class MemoryAnalyzer:
                 image_hash = await self.features_extractor.get_image_hash(image_data)
                 photo["image_hash"] = image_hash
 
-                # 检查是否已经存储过
-                existing_photo = await photos_collection.find_one({"image_hash": image_hash})
-                if existing_photo:
-                    local_logger.info(f"照片已存在，使用现有记录: {photo.get('filename', 'unknown')}")
-                    # 更新关联信息
-                    photo["photo_id"] = str(existing_photo["_id"])
-                    photo["features"] = existing_photo.get("features")
-                    photo["compressed_info"] = existing_photo.get("compressed_info")
-                    processed_photos.append(photo)
-                    continue
-
                 # 提取特征
                 local_logger.info(f"提取特征: {photo.get('filename', 'unknown')}")
                 features = await self.features_extractor.extract_features(image_data)
@@ -1044,7 +1033,30 @@ class MemoryAnalyzer:
                 compression_result = await self.image_compressor.compress(image_data)
                 photo["compressed_info"] = compression_result
 
-                # 存储到MongoDB
+                # 检查是否已经存储过
+                existing_photo = await photos_collection.find_one({"image_hash": image_hash})
+                if existing_photo:
+                    local_logger.info(f"照片已存在，使用现有记录: {photo.get('filename', 'unknown')}")
+                    
+                    # 检查是否缺少压缩图片数据
+                    has_compressed_image_data = "compressed_image_data" in existing_photo
+                    
+                    if not has_compressed_image_data:
+                        local_logger.info(f"更新缺失的压缩图片数据: {photo.get('filename', 'unknown')}")
+                        # 只更新压缩图片数据
+                        await photos_collection.update_one(
+                            {"image_hash": image_hash},
+                            {"$set": {"compressed_image_data": compression_result.get("compressed_data")}}
+                        )
+                    
+                    # 更新关联信息
+                    photo["photo_id"] = str(existing_photo["_id"])
+                    photo["features"] = existing_photo.get("features")
+                    photo["compressed_info"] = existing_photo.get("compressed_info")
+                    processed_photos.append(photo)
+                    continue
+
+                # 存储到MongoDB（只存储压缩后的图片数据）
                 photo_doc = {
                     "user_id": user_id,
                     "image_hash": image_hash,
@@ -1053,7 +1065,7 @@ class MemoryAnalyzer:
                     "features": features,
                     "compressed_info": compression_result,
                     "original_size": len(image_data),
-                    "image_data": image_data,
+                    "compressed_image_data": compression_result.get("compressed_data"),
                     "created_at": datetime.now()
                 }
                 result = await photos_collection.insert_one(photo_doc)

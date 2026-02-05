@@ -253,8 +253,8 @@ async def get_image_data(
             detail="无权访问其他用户的图片"
         )
     
-    # 获取图片数据
-    image_data = image.get("image_data")
+    # 获取图片数据（只使用压缩后的图片）
+    image_data = image.get("compressed_image_data")
     if not image_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
