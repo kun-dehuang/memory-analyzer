@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { memoryAPI } from '../api/api'
+import { memoryAPI, imageAPI } from '../api/api'
 
 function MemoryRecordsPage () {
   const navigate = useNavigate()
@@ -13,6 +13,10 @@ function MemoryRecordsPage () {
   const [verificationSuccess, setVerificationSuccess] = useState('')
   const [showVerificationForm, setShowVerificationForm] = useState(false)
   const [currentRecordId, setCurrentRecordId] = useState(null)
+  const [showImagesModal, setShowImagesModal] = useState(false)
+  const [recordImages, setRecordImages] = useState([])
+  const [imagesLoading, setImagesLoading] = useState(false)
+  const [imagesError, setImagesError] = useState('')
 
   useEffect(() => {
     loadRecords()
@@ -39,6 +43,28 @@ function MemoryRecordsPage () {
     } catch (err) {
       setError('加载记录详情失败')
       console.error('加载记录详情失败:', err)
+    }
+  }
+
+  const viewRecordImages = async (record) => {
+    try {
+      setImagesLoading(true)
+      setImagesError('')
+      
+      if (record.used_photos && record.used_photos.length > 0) {
+        // 批量获取图片详情
+        const images = await imageAPI.getImagesBatch(record.used_photos.join(','))
+        setRecordImages(images)
+      } else {
+        setRecordImages([])
+      }
+      
+      setShowImagesModal(true)
+    } catch (err) {
+      setImagesError('加载图片失败')
+      console.error('加载图片失败:', err)
+    } finally {
+      setImagesLoading(false)
     }
   }
 
@@ -225,12 +251,22 @@ function MemoryRecordsPage () {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {record.status === 'completed' && (
-                        <button
-                          onClick={() => viewRecord(record.id)}
-                          className="text-blue-600 hover:text-blue-800 mr-2"
-                        >
-                          查看结果
-                        </button>
+                        <>
+                          <button
+                            onClick={() => viewRecord(record.id)}
+                            className="text-blue-600 hover:text-blue-800 mr-2"
+                          >
+                            查看结果
+                          </button>
+                          {record.used_photos && record.used_photos.length > 0 && (
+                            <button
+                              onClick={() => viewRecordImages(record)}
+                              className="text-green-600 hover:text-green-800 mr-2"
+                            >
+                              查看图片
+                            </button>
+                          )}
+                        </>
                       )}
                       {record.status === 'failed' && (
                         <span className="text-red-600 text-sm">
@@ -696,6 +732,70 @@ function MemoryRecordsPage () {
             </div>
           )}
         </div>
+
+        {/* 图片查看模态框 */}
+        {showImagesModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold">使用的图片</h3>
+                  <button
+                    onClick={() => setShowImagesModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {imagesLoading && (
+                  <div className="text-center py-8">
+                    <p>加载图片中...</p>
+                  </div>
+                )}
+
+                {imagesError && (
+                  <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+                    {imagesError}
+                  </div>
+                )}
+
+                {!imagesLoading && !imagesError && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {recordImages.length > 0 ? (
+                      recordImages.map((image) => (
+                        <div key={image.id} className="border rounded-lg p-2">
+                          <div className="font-medium text-sm mb-1">{image.filename}</div>
+                          <div className="text-xs text-gray-500 mb-2">
+                            {new Date(image.datetime).toLocaleString('zh-CN')}
+                          </div>
+                          {image.features && (
+                            <div className="text-xs text-gray-600 mb-2">
+                              <div>美学评分: {image.features.aesthetic_score?.toFixed(2) || 'N/A'}</div>
+                              <div>信息量评分: {image.features.information_score?.toFixed(2) || 'N/A'}</div>
+                            </div>
+                          )}
+                          {image.compressed_info && (
+                            <div className="text-xs text-gray-600">
+                              <div>压缩后: {image.compressed_info.width}x{image.compressed_info.height}</div>
+                              <div>格式: {image.compressed_info.format}</div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-8 text-gray-500">
+                        暂无图片
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

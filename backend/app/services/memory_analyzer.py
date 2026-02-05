@@ -26,10 +26,12 @@ try:
 except ImportError:
     psutil = None
 
-from app.config.database import prompts_collection
+from app.config.database import prompts_collection, photos_collection
 from app.services.exif_extractor import EXIFExtractor
 from app.services.icloud_client import iCloudClient
 from app.services.photo_filter import PhotoFilter
+from app.services.image_features import ImageFeaturesExtractor
+from app.services.image_compressor import ImageCompressor
 
 load_dotenv()
 
@@ -54,6 +56,8 @@ class MemoryAnalyzer:
         self.exif_extractor = EXIFExtractor()
         self.icloud_client = iCloudClient()
         self.photo_filter = PhotoFilter()
+        self.features_extractor = ImageFeaturesExtractor()
+        self.image_compressor = ImageCompressor()
 
     async def analyze(
         self,
@@ -64,7 +68,7 @@ class MemoryAnalyzer:
         verification_code: Optional[str] = None,
         protagonist_features: Optional[Dict[str, Any]] = None,
     ) -> Tuple[
-        List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str], Dict[str, Any]
+        List[Dict[str, Any]], Dict[str, Any], int, Tuple[str, str], Dict[str, Any], List[str]
     ]:
         """
         执行完整的记忆分析流程
@@ -93,6 +97,7 @@ class MemoryAnalyzer:
             "total_time": 0,
             "download_time": 0,
             "filter_time": 0,
+            "process_time": 0,
             "phase1_time": 0,
             "phase1_tokens": 0,
             "phase1_prompt_tokens": 0,
@@ -379,9 +384,16 @@ class MemoryAnalyzer:
             # 记录下载耗时
             stats["download_time"] = download_time
 
-            # 5. 按时间分组
+            # 5. 处理图片（特征提取、压缩、存储）
+            local_logger.info("处理图片")
+            processed_photos, process_time = await self._process_images(
+                photo_metadata, user_id
+            )
+            stats["process_time"] = process_time
+
+            # 6. 按时间分组
             local_logger.info("按时间分组")
-            batches = self._group_by_time(photo_metadata)
+            batches = self._group_by_time(processed_photos)
 
             # 6. 获取提示词
             local_logger.info("获取分析提示词")
@@ -431,6 +443,7 @@ class MemoryAnalyzer:
             local_logger.info(f"记忆分析总耗时: {stats['total_time']:.2f} 秒")
             local_logger.info(f"下载图片耗时: {stats['download_time']:.2f} 秒")
             local_logger.info(f"过滤图片耗时: {stats['filter_time']:.2f} 秒")
+            local_logger.info(f"处理图片耗时: {stats['process_time']:.2f} 秒")
             local_logger.info(
                 f"Phase 1 分析耗时: {stats['phase1_time']:.2f} 秒, Token消耗: {stats['phase1_tokens']}"
             )
@@ -438,8 +451,14 @@ class MemoryAnalyzer:
                 f"Phase 2 分析耗时: {stats['phase2_time']:.2f} 秒, Token消耗: {stats['phase2_tokens']}"
             )
 
+            # 收集使用的图片ID
+            used_photos = []
+            for photo in processed_photos:
+                if "photo_id" in photo:
+                    used_photos.append(photo["photo_id"])
+
             local_logger.info("记忆分析流程完成")
-            return phase1_results, phase2_result, filtered_count, time_range, stats
+            return phase1_results, phase2_result, filtered_count, time_range, stats, used_photos
 
         except Exception as e:
             local_logger.error(f"分析失败: {e}")
@@ -972,6 +991,83 @@ class MemoryAnalyzer:
                 "raw_output": text,
             }
             return result
+
+    async def _process_images(self, photos: List[Dict[str, Any]], user_id: str) -> Tuple[List[Dict[str, Any]], float]:
+        """
+        处理图片
+
+        Args:
+            photos: 照片列表
+            user_id: 用户ID
+
+        Returns:
+            (处理后的照片列表, 处理耗时)
+        """
+        processed_photos = []
+        start_time = time.time()
+        local_logger = logger
+
+        for photo in photos:
+            try:
+                # 获取图片数据
+                base64_image = photo.get("base64_image")
+                if not base64_image:
+                    local_logger.warning(f"跳过无图片数据的照片: {photo.get('filename', 'unknown')}")
+                    processed_photos.append(photo)
+                    continue
+
+                # 转换base64为字节
+                image_data = base64.b64decode(base64_image)
+
+                # 计算MD5哈希值
+                image_hash = await self.features_extractor.get_image_hash(image_data)
+                photo["image_hash"] = image_hash
+
+                # 检查是否已经存储过
+                existing_photo = await photos_collection.find_one({"image_hash": image_hash})
+                if existing_photo:
+                    local_logger.info(f"照片已存在，使用现有记录: {photo.get('filename', 'unknown')}")
+                    # 更新关联信息
+                    photo["photo_id"] = str(existing_photo["_id"])
+                    photo["features"] = existing_photo.get("features")
+                    photo["compressed_info"] = existing_photo.get("compressed_info")
+                    processed_photos.append(photo)
+                    continue
+
+                # 提取特征
+                local_logger.info(f"提取特征: {photo.get('filename', 'unknown')}")
+                features = await self.features_extractor.extract_features(image_data)
+                photo["features"] = features
+
+                # 压缩图片
+                local_logger.info(f"压缩图片: {photo.get('filename', 'unknown')}")
+                compression_result = await self.image_compressor.compress(image_data)
+                photo["compressed_info"] = compression_result
+
+                # 存储到MongoDB
+                photo_doc = {
+                    "user_id": user_id,
+                    "image_hash": image_hash,
+                    "filename": photo.get("filename"),
+                    "datetime": photo.get("datetime"),
+                    "features": features,
+                    "compressed_info": compression_result,
+                    "original_size": len(image_data),
+                    "created_at": datetime.now()
+                }
+                result = await photos_collection.insert_one(photo_doc)
+                photo["photo_id"] = str(result.inserted_id)
+
+                processed_photos.append(photo)
+
+            except Exception as e:
+                local_logger.error(f"处理图片失败: {e}")
+                # 失败时保留原始照片
+                processed_photos.append(photo)
+
+        process_time = time.time() - start_time
+        local_logger.info(f"图片处理完成，共处理 {len(processed_photos)} 张照片, 耗时: {process_time:.2f} 秒")
+        return processed_photos, process_time
 
     def _calculate_time_range(self, photos: List[Dict[str, Any]]) -> Tuple[str, str]:
         """计算时间范围"""

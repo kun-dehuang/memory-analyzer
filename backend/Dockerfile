@@ -13,6 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libssl-dev \
   libffi-dev \
   python3-dev \
+  libxcb1 \
+  libgl1-mesa-glx \
+  libx11-6 \
+  libglib2.0-0 \
+  libsm6 \
+  libxext6 \
+  libxrender-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # 安装 Python 依赖

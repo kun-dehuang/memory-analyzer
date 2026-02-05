@@ -52,7 +52,8 @@ async def get_memory_records(
             "completed_at": record.get("completed_at"),
             "image_count": record.get("image_count", 0),
             "time_range": record.get("time_range"),
-            "stats": record.get("stats")
+            "stats": record.get("stats"),
+            "used_photos": record.get("used_photos", [])  # 返回使用的图片列表
         }
         records.append(MemoryRecord(**record_dict))
     
@@ -137,7 +138,8 @@ async def get_memory_record(
         "completed_at": record.get("completed_at"),
         "image_count": record.get("image_count", 0),
         "time_range": record.get("time_range"),
-        "stats": record.get("stats")
+        "stats": record.get("stats"),
+        "used_photos": record.get("used_photos", [])
     }
     
     return MemoryRecord(**record_dict)
@@ -360,7 +362,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         # 执行分析
         analyzer = MemoryAnalyzer()
         try:
-            phase1_results, phase2_result, image_count, time_range, stats = await analyzer.analyze(
+            phase1_results, phase2_result, image_count, time_range, stats, used_photos = await analyzer.analyze(
                 user_id=user_id,
                 prompt_group_id=prompt_group_id,
                 icloud_email=icloud_email,
@@ -419,6 +421,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
         print(f"分析完成 - image_count: {image_count}")
         print(f"分析完成 - time_range: {time_range}")
         print(f"分析完成 - stats: {stats}")
+        print(f"分析完成 - used_photos: {len(used_photos)}")
         
         # 更新分析结果
         update_result = await memory_records_collection.update_one(
@@ -430,6 +433,7 @@ async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id:
                 "image_count": image_count,
                 "time_range": time_range,
                 "stats": stats,
+                "used_photos": used_photos,
                 "completed_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }}

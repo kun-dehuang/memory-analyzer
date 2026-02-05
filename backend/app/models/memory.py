@@ -28,6 +28,7 @@ class MemoryRecord(MemoryRecordBase):
     image_count: int = 0
     time_range: Optional[Tuple[str, str]] = None
     stats: Optional[Dict[str, Any]] = None
+    used_photos: Optional[List[str]] = None  # 存储使用的图片ID列表
     
     class Config:
         from_attributes = True

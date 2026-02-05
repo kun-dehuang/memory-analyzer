@@ -45,7 +45,14 @@ try:
         "requests",
         "python-dateutil",
         "email-validator",
-        "pyicloud"
+        "pyicloud",
+        "opencv-python",
+        "transformers",
+        "torch",
+        "torchvision",
+        "numpy",
+        "scikit-learn",
+        "scikit-image",
     ]
 
     for dep in required_deps:
@@ -96,7 +103,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 
 from app.config.database import create_indexes
-from app.api import users, prompts, memory, auth
+from app.api import users, prompts, memory, auth, image
 
 
 @asynccontextmanager
@@ -133,6 +140,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(users.router, prefix="/api/users", tags=["用户"])
 app.include_router(prompts.router, prefix="/api/prompts", tags=["提示词"])
 app.include_router(memory.router, prefix="/api/memory", tags=["记忆分析"])
+app.include_router(image.router, prefix="/api/images", tags=["图片"])
 
 
 @app.get("/")

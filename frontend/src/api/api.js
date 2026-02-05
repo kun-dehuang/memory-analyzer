@@ -125,4 +125,16 @@ export const memoryAPI = {
   deleteMemoryRecord: (recordId) => api.delete(`/memory/records/${recordId}`)
 }
 
+// 图片相关API
+export const imageAPI = {
+  // 获取图片列表
+  getImages: (page = 1, limit = 10, userId = null) => api.get('/images', { params: { page, limit, userId } }),
+  // 获取图片详情
+  getImage: (imageId) => api.get(`/images/${imageId}`),
+  // 批量获取图片详情
+  getImagesBatch: (batchIds) => api.get(`/images/batch/${batchIds}`),
+  // 删除图片
+  deleteImage: (imageId) => api.delete(`/images/${imageId}`)
+}
+
 export default api

@@ -13,12 +13,18 @@ from PIL import Image
 import io
 import os
 import hashlib
+import numpy as np
+from app.services.image_features import ImageFeaturesExtractor
 
 logger = logging.getLogger(__name__)
 
 
 class PhotoFilter:
     """照片过滤器"""
+
+    def __init__(self):
+        """初始化过滤器"""
+        self.features_extractor = ImageFeaturesExtractor()
 
     async def filter(
         self, photos: List[Dict[str, Any]], user_id: str, photo_map: dict = None
@@ -50,17 +56,22 @@ class PhotoFilter:
             non_screenshots = await self._filter_screenshots(non_videos)
             logger.info(f"过滤截图后剩余: {len(non_screenshots)}张")
 
-            # 3. 过滤Gemini无法处理的图片
+            # 3. 过滤网络下载图片
+            logger.info("过滤网络下载图片")
+            non_downloads = await self._filter_downloads(non_screenshots)
+            logger.info(f"过滤网络下载图片后剩余: {len(non_downloads)}张")
+
+            # 4. 过滤Gemini无法处理的图片
             logger.info("过滤Gemini无法处理的图片")
-            gemini_compatible = await self._filter_gemini_incompatible(non_screenshots)
+            gemini_compatible = await self._filter_gemini_incompatible(non_downloads)
             logger.info(f"过滤后剩余: {len(gemini_compatible)}张")
 
-            # 4. 过滤重复照片
+            # 5. 过滤重复照片
             logger.info("过滤重复照片")
             unique_photos = await self._filter_duplicates(gemini_compatible, photo_map)
             logger.info(f"过滤重复后剩余: {len(unique_photos)}张")
 
-            # 5. 按时间排序（最新的在前）
+            # 6. 按时间排序（最新的在前）
             unique_photos.sort(key=lambda x: x["datetime"], reverse=True)
 
             # 计算耗时
@@ -146,22 +157,30 @@ class PhotoFilter:
 
         for photo in photos:
             try:
-                # 这里需要根据照片内容判断是否为截图
-                # 暂时基于文件名和路径判断
+                # 基于文件名和路径判断
                 filename = photo.get("filename", "").lower()
                 path = photo.get("path", "").lower()
 
                 # 常见截图特征
-                is_screenshot = any(
-                    [
-                        "screenshot" in filename,
-                        "screen" in filename,
-                        "截图" in filename,
-                        "screenshot" in path,
-                        "screen" in path,
-                        "截图" in path,
-                    ]
-                )
+                screenshot_keywords = [
+                    "screenshot",
+                    "screen",
+                    "截图",
+                    "screen_shot",
+                    "capture",
+                    "截取",
+                    "屏幕截图",
+                    "screengrab"
+                ]
+
+                # 检查文件名和路径
+                is_screenshot = any(keyword in filename for keyword in screenshot_keywords) or \
+                               any(keyword in path for keyword in screenshot_keywords)
+
+                # 检查文件路径中的常见截图目录
+                screenshot_dirs = ["screenshots", "截图", "screen captures"]
+                is_screenshot_dir = any(dir_name in path for dir_name in screenshot_dirs)
+                is_screenshot = is_screenshot or is_screenshot_dir
 
                 if not is_screenshot:
                     photo["is_screenshot"] = False
@@ -177,6 +196,62 @@ class PhotoFilter:
                 non_screenshots.append(photo)
 
         return non_screenshots
+
+    async def _filter_downloads(
+        self, photos: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        过滤网络下载图片
+
+        Args:
+            photos: 照片列表
+
+        Returns:
+            非网络下载照片列表
+        """
+        non_downloads = []
+
+        for photo in photos:
+            try:
+                filename = photo.get("filename", "").lower()
+                path = photo.get("path", "").lower()
+
+                # 常见下载图片特征
+                download_keywords = [
+                    "download",
+                    "dl_",
+                    "saved",
+                    "copy",
+                    "downloaded",
+                    "下载",
+                    "保存的图片",
+                    "internet",
+                    "web_"
+                ]
+
+                # 检查文件名和路径
+                is_download = any(keyword in filename for keyword in download_keywords) or \
+                             any(keyword in path for keyword in download_keywords)
+
+                # 检查文件路径中的常见下载目录
+                download_dirs = ["downloads", "下载", "desktop", "桌面"]
+                is_download_dir = any(dir_name in path for dir_name in download_dirs)
+                is_download = is_download or is_download_dir
+
+                if not is_download:
+                    photo["is_download"] = False
+                    non_downloads.append(photo)
+                else:
+                    photo["is_download"] = True
+                    logger.debug(f"过滤掉网络下载图片: {filename}")
+
+            except Exception as e:
+                logger.warning(f"判断网络下载图片失败: {e}")
+                # 失败时保留照片
+                photo["is_download"] = False
+                non_downloads.append(photo)
+
+        return non_downloads
 
     async def _filter_gemini_incompatible(
         self, photos: List[Dict[str, Any]]
@@ -232,81 +307,159 @@ class PhotoFilter:
             唯一照片列表
         """
         unique_photos = []
-        seen_hashes = set()
-        duplicate_groups = {}
+        duplicate_groups = []  # 存储重复组，每个组包含多张照片
 
+        # 为每张照片提取特征
+        photos_with_features = []
         for photo in photos:
             try:
-                # 尝试使用iCloud本身的重复标签
-                is_duplicate = False
-                use_icloud_duplicate = False
-
+                # 尝试获取图片数据
+                photo_data = None
                 if photo_map:
                     photo_id = photo.get("id", "")
-                    # 从photo_map中获取原始iCloud照片对象
                     if photo_id in photo_map:
-                        original_photo = photo_map[photo_id]
-                        # 检查原始照片对象是否有重复相关的属性
-                        # 注意：这里需要根据实际的iCloud照片对象结构调整
-                        # 常见的重复相关属性可能包括：duplicate_info, is_duplicate, duplicate_group等
                         try:
-                            # 检查是否有重复组信息
-                            if hasattr(original_photo, "duplicate_group"):
-                                duplicate_group = original_photo.duplicate_group
-                                use_icloud_duplicate = True
-                                if duplicate_group in duplicate_groups:
-                                    # 已经有同组的照片，标记为重复
-                                    is_duplicate = True
-                                    photo["is_duplicate"] = True
-                                    logger.debug(
-                                        f"根据iCloud重复组过滤掉照片: {photo.get('filename', '')}"
-                                    )
-                                else:
-                                    # 新的重复组，保留第一张
-                                    duplicate_groups[duplicate_group] = photo
-                                    photo["is_duplicate"] = False
-                                    unique_photos.append(photo)
-                            elif hasattr(original_photo, "is_duplicate"):
-                                is_duplicate = original_photo.is_duplicate
-                                use_icloud_duplicate = True
-                                if not is_duplicate:
-                                    photo["is_duplicate"] = False
-                                    unique_photos.append(photo)
-                                else:
-                                    photo["is_duplicate"] = True
-                                    logger.debug(
-                                        f"根据iCloud重复标记过滤掉照片: {photo.get('filename', '')}"
-                                    )
+                            original_photo = photo_map[photo_id]
+                            photo_data = original_photo.download().content
                         except Exception as e:
-                            logger.debug(f"获取iCloud重复信息失败: {e}")
-                            # 失败时回退到哈希方法
-                            use_icloud_duplicate = False
-
-                # 如果没有使用iCloud重复标签，回退到哈希方法
-                if not use_icloud_duplicate:
-                    photo_id = photo.get("id", "")
-                    filename = photo.get("filename", "")
-                    datetime_str = str(photo.get("datetime", ""))
-
-                    # 生成综合哈希
-                    hash_input = f"{photo_id}_{filename}_{datetime_str}"
-                    photo_hash = hashlib.md5(hash_input.encode()).hexdigest()
-
-                    if photo_hash not in seen_hashes:
-                        seen_hashes.add(photo_hash)
-                        photo["is_duplicate"] = False
-                        unique_photos.append(photo)
-                    else:
-                        photo["is_duplicate"] = True
-                        logger.debug(f"根据哈希过滤掉重复照片: {filename}")
-
+                            logger.debug(f"下载照片失败: {e}")
+                            continue
+                
+                if photo_data:
+                    # 提取特征
+                    features = await self.features_extractor.extract_features(photo_data)
+                    photo["features"] = features
+                    photo["image_data"] = photo_data  # 临时存储图片数据
+                    photos_with_features.append(photo)
+                else:
+                    # 没有图片数据，直接添加
+                    photos_with_features.append(photo)
             except Exception as e:
-                logger.warning(f"判断重复失败: {e}")
-                # 失败时保留照片
+                logger.warning(f"处理照片失败: {e}")
+                photos_with_features.append(photo)
+
+        # 基于特征相似度分组
+        for photo in photos_with_features:
+            if "features" not in photo or not photo["features"].get("visual_features"):
+                # 没有特征，单独一组
+                duplicate_groups.append([photo])
+                continue
+
+            # 查找相似的照片组
+            matched = False
+            for group in duplicate_groups:
+                # 计算与组内第一张照片的相似度
+                group_photo = group[0]
+                if "features" in group_photo and group_photo["features"].get("visual_features"):
+                    similarity = self._calculate_similarity(
+                        photo["features"]["visual_features"],
+                        group_photo["features"]["visual_features"]
+                    )
+                    # 相似度阈值
+                    if similarity > 0.8:
+                        group.append(photo)
+                        matched = True
+                        break
+            if not matched:
+                duplicate_groups.append([photo])
+
+        # 为每个重复组选择最优照片
+        for group in duplicate_groups:
+            if len(group) == 1:
+                # 只有一张照片，直接添加
+                photo = group[0]
                 photo["is_duplicate"] = False
                 unique_photos.append(photo)
+            else:
+                # 有多张照片，选择评分最高的
+                best_photo = await self._select_best_photo(group)
+                best_photo["is_duplicate"] = False
+                unique_photos.append(best_photo)
+                # 标记其他照片为重复
+                for photo in group:
+                    if photo != best_photo:
+                        photo["is_duplicate"] = True
+                        logger.debug(f"过滤掉重复照片: {photo.get('filename', '')}")
+
+        # 清理临时数据
+        for photo in unique_photos:
+            if "image_data" in photo:
+                del photo["image_data"]
 
         return unique_photos
+
+    def _calculate_similarity(self, features1: List[float], features2: List[float]) -> float:
+        """
+        计算特征向量的相似度
+
+        Args:
+            features1: 第一个特征向量
+            features2: 第二个特征向量
+
+        Returns:
+            相似度（0-1）
+        """
+        try:
+            # 转换为numpy数组
+            vec1 = np.array(features1)
+            vec2 = np.array(features2)
+            
+            # 计算余弦相似度
+            dot_product = np.dot(vec1, vec2)
+            norm1 = np.linalg.norm(vec1)
+            norm2 = np.linalg.norm(vec2)
+            
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+            
+            similarity = dot_product / (norm1 * norm2)
+            return float(max(0.0, min(1.0, similarity)))
+        except Exception as e:
+            logger.error(f"计算相似度失败: {e}")
+            return 0.0
+
+    async def _select_best_photo(self, photos: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        选择评分最高的照片
+
+        Args:
+            photos: 照片列表
+
+        Returns:
+            评分最高的照片
+        """
+        best_photo = photos[0]
+        best_score = -1
+
+        for photo in photos:
+            # 计算综合评分
+            score = await self._calculate_photo_score(photo)
+            if score > best_score:
+                best_score = score
+                best_photo = photo
+
+        return best_photo
+
+    async def _calculate_photo_score(self, photo: Dict[str, Any]) -> float:
+        """
+        计算照片的综合评分
+
+        Args:
+            photo: 照片字典
+
+        Returns:
+            综合评分（0-1）
+        """
+        try:
+            if "features" in photo:
+                aesthetic_score = photo["features"].get("aesthetic_score", 0.0)
+                information_score = photo["features"].get("information_score", 0.0)
+                # 权重：美学评分40%，信息量评分60%
+                return aesthetic_score * 0.4 + information_score * 0.6
+            return 0.0
+        except Exception as e:
+            logger.error(f"计算照片评分失败: {e}")
+            return 0.0
 
     def _calculate_hash(self, image_data: bytes) -> str:
         """
@@ -325,3 +478,23 @@ class PhotoFilter:
         except Exception as e:
             logger.warning(f"计算哈希失败: {e}")
             return ""
+
+    async def _get_image_data(self, photo_id: str, photo_map: dict) -> bytes:
+        """
+        获取图片数据
+
+        Args:
+            photo_id: 照片ID
+            photo_map: 照片映射
+
+        Returns:
+            图片数据
+        """
+        try:
+            if photo_id in photo_map:
+                photo = photo_map[photo_id]
+                return photo.download().content
+            return None
+        except Exception as e:
+            logger.error(f"获取图片数据失败: {e}")
+            return None

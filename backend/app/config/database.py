@@ -23,6 +23,7 @@ prompt_groups_collection = async_db["prompt_groups"]
 prompts_collection = async_db["prompts"]
 memory_records_collection = async_db["memory_records"]
 photo_metadata_collection = async_db["photo_metadata"]
+photos_collection = async_db["photos"]
 
 # 索引创建
 async def create_indexes():
@@ -43,3 +44,8 @@ async def create_indexes():
     # 照片元数据集合索引
     await photo_metadata_collection.create_index("user_id")
     await photo_metadata_collection.create_index("datetime")
+    
+    # 照片集合索引
+    await photos_collection.create_index("user_id")
+    await photos_collection.create_index("image_hash", unique=True)
+    await photos_collection.create_index("created_at")
