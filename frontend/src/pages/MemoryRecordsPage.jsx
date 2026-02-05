@@ -19,13 +19,9 @@ function MemoryRecordsPage () {
   const [imagesError, setImagesError] = useState('')
 
   // Regenerate Phase 2 state
-  const [showRegenerateModal, setShowRegenerateModal] = useState(false)
-  const [regenerateRecord, setRegenerateRecord] = useState(null)
   const [promptGroups, setPromptGroups] = useState([])
   const [selectedPromptGroup, setSelectedPromptGroup] = useState('')
-  const [regenerateLoading, setRegenerateLoading] = useState(false)
-  const [regenerateError, setRegenerateError] = useState('')
-  const [regenerateSuccess, setRegenerateSuccess] = useState('')
+  const [selectedPhase2Version, setSelectedPhase2Version] = useState(null)
 
   useEffect(() => {
     loadRecords()
@@ -87,43 +83,25 @@ function MemoryRecordsPage () {
     }
   }
 
-  const handleRegeneratePhase2 = (record) => {
-    setRegenerateRecord(record)
-    setRegenerateError('')
-    setRegenerateSuccess('')
-    setShowRegenerateModal(true)
-  }
-
-  const handleRegenerateSubmit = async () => {
-    if (!selectedPromptGroup || !regenerateRecord) {
-      setRegenerateError('请选择提示词组')
+  const handleRegeneratePhase2 = async (record) => {
+    if (!selectedPromptGroup || !record) {
+      alert('请选择提示词组')
       return
     }
 
     try {
-      setRegenerateLoading(true)
-      setRegenerateError('')
-      
       // 调用API重新生成Phase 2结果
       const updatedRecord = await memoryAPI.regeneratePhase2Result(
-        regenerateRecord.id,
+        record.id,
         selectedPromptGroup
       )
       
       // 更新选中的记录
       setSelectedRecord(updatedRecord)
-      setRegenerateSuccess('重新生成成功')
-      
-      // 3秒后关闭模态框
-      setTimeout(() => {
-        setShowRegenerateModal(false)
-        setSelectedPromptGroup('')
-      }, 3000)
+      alert('重新生成成功')
     } catch (err) {
       console.error('重新生成失败:', err)
-      setRegenerateError('重新生成失败，请重试')
-    } finally {
-      setRegenerateLoading(false)
+      alert('重新生成失败，请重试')
     }
   }
 
@@ -642,118 +620,194 @@ function MemoryRecordsPage () {
                   {/* Phase 2 结果 */}
                   {selectedRecord.phase2_result && (
                     <div className="mb-6">
-                      <div className="flex justify-between items-center mb-3">
+                      <div className="flex flex-wrap justify-between items-center mb-3 gap-2">
                         <h4 className="text-lg font-semibold text-green-600">Phase 2 综合分析</h4>
-                        <button
-                          onClick={() => handleRegeneratePhase2(selectedRecord)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                        >
-                          重新生成
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <select
+                            className="w-48 p-2 border rounded text-sm"
+                            value={selectedPromptGroup}
+                            onChange={(e) => setSelectedPromptGroup(e.target.value)}
+                          >
+                            <option value="">-- 选择提示词组 --</option>
+                            {promptGroups.map((group) => (
+                              <option key={group.id} value={group.id}>
+                                {group.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleRegeneratePhase2(selectedRecord)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm"
+                            disabled={!selectedPromptGroup}
+                          >
+                            重新生成
+                          </button>
+                        </div>
                       </div>
+                      
+                      {/* Phase 2 版本选择 */}
+                      {selectedRecord.phase2_results && selectedRecord.phase2_results.length > 1 && (
+                        <div className="mb-4">
+                          <label className="block text-gray-700 mb-2 text-sm">选择版本：</label>
+                          <select
+                            className="w-full p-2 border rounded text-sm"
+                            value={selectedPhase2Version || ''}
+                            onChange={(e) => setSelectedPhase2Version(e.target.value)}
+                          >
+                            {selectedRecord.phase2_results.map((version, index) => (
+                              <option key={version.prompt_group_id || index} value={version.prompt_group_id || index}>
+                                {version.prompt_group_name} ({new Date(version.created_at).toLocaleString('zh-CN')})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      
                       <div className="space-y-4">
                         {/* 元信息 */}
-                        {selectedRecord.phase2_result.meta && (
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">概览</h5>
-                            <div className="text-sm text-gray-600">
-                              {selectedRecord.phase2_result.meta.scan_summary}
-                            </div>
-                            {selectedRecord.phase2_result.meta.timeline_chapters && (
-                              <div className="mt-2">
-                                <span className="font-medium">时间线章节：</span>
-                                <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
-                                  {selectedRecord.phase2_result.meta.timeline_chapters.map((chapter, index) => (
-                                    <li key={index}>{chapter}</li>
-                                  ))}
-                                </ul>
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.meta && (
+                            <div className="border rounded-lg p-4">
+                              <h5 className="font-medium mb-2">概览</h5>
+                              <div className="text-sm text-gray-600">
+                                {phase2Data.meta.scan_summary}
                               </div>
-                            )}
-                          </div>
-                        )}
+                              {phase2Data.meta.timeline_chapters && (
+                                <div className="mt-2">
+                                  <span className="font-medium">时间线章节：</span>
+                                  <ul className="list-disc list-inside mt-1 text-sm text-gray-600">
+                                    {phase2Data.meta.timeline_chapters.map((chapter, index) => (
+                                      <li key={index}>{chapter}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* 空间时间 */}
-                        {selectedRecord.phase2_result.L1_Spatio_Temporal && (
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">空间时间维度</h5>
-                            <div className="space-y-2 text-sm text-gray-600">
-                              <div><span className="font-medium">生活半径：</span>{selectedRecord.phase2_result.L1_Spatio_Temporal.life_radius}</div>
-                              <div><span className="font-medium">生物钟：</span>{selectedRecord.phase2_result.L1_Spatio_Temporal.biological_clock}</div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 社交图谱 */}
-                        {selectedRecord.phase2_result.L3_Social_Graph && (
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">社交图谱</h5>
-                            <div className="space-y-2 text-sm text-gray-600">
-                              <div>
-                                <span className="font-medium">核心社交圈：</span>
-                                {selectedRecord.phase2_result.L3_Social_Graph.core_circle.length > 0 ? (
-                                  <ul className="list-disc list-inside mt-1">
-                                    {selectedRecord.phase2_result.L3_Social_Graph.core_circle.map((person, index) => {
-                                      if (typeof person === 'object' && person !== null) {
-                                        const name_id = person.name_id != null ? String(person.name_id) : '未知'
-                                        const relation = person.relation != null ? String(person.relation) : '未知'
-                                        const frequency = person.frequency != null ? String(person.frequency) : '未知'
-                                        return <li key={index}>{name_id}: {relation} ({frequency})</li>
-                                      } else {
-                                        return <li key={index}>{String(person)}</li>
-                                      }
-                                    })}
-                                  </ul>
-                                ) : (
-                                  <span className="text-gray-400">暂无数据</span>
-                                )}
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.L1_Spatio_Temporal && (
+                            <div className="border rounded-lg p-4">
+                              <h5 className="font-medium mb-2">空间时间维度</h5>
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <div><span className="font-medium">生活半径：</span>{phase2Data.L1_Spatio_Temporal.life_radius}</div>
+                                <div><span className="font-medium">生物钟：</span>{phase2Data.L1_Spatio_Temporal.biological_clock}</div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
+
+                        {/* 社交图谱 */}
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.L3_Social_Graph && (
+                            <div className="border rounded-lg p-4">
+                              <h5 className="font-medium mb-2">社交图谱</h5>
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <div>
+                                  <span className="font-medium">核心社交圈：</span>
+                                  {phase2Data.L3_Social_Graph.core_circle.length > 0 ? (
+                                    <ul className="list-disc list-inside mt-1">
+                                      {phase2Data.L3_Social_Graph.core_circle.map((person, index) => {
+                                        if (typeof person === 'object' && person !== null) {
+                                          const name_id = person.name_id != null ? String(person.name_id) : '未知'
+                                          const relation = person.relation != null ? String(person.relation) : '未知'
+                                          const frequency = person.frequency != null ? String(person.frequency) : '未知'
+                                          return <li key={index}>{name_id}: {relation} ({frequency})</li>
+                                        } else {
+                                          return <li key={index}>{String(person)}</li>
+                                        }
+                                      })}
+                                    </ul>
+                                  ) : (
+                                    <span className="text-gray-400">暂无数据</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* 行为趋势 */}
-                        {selectedRecord.phase2_result.L4_Behavior_Trends && (
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">行为趋势</h5>
-                            <div className="space-y-2 text-sm text-gray-600">
-                              <div><span className="font-medium">社交面具：</span>{selectedRecord.phase2_result.L4_Behavior_Trends.social_mask}</div>
-                              <div><span className="font-medium">消费变化：</span>{selectedRecord.phase2_result.L4_Behavior_Trends.consumption_shift}</div>
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.L4_Behavior_Trends && (
+                            <div className="border rounded-lg p-4">
+                              <h5 className="font-medium mb-2">行为趋势</h5>
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <div><span className="font-medium">社交面具：</span>{phase2Data.L4_Behavior_Trends.social_mask}</div>
+                                <div><span className="font-medium">消费变化：</span>{phase2Data.L4_Behavior_Trends.consumption_shift}</div>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {/* 心理学 */}
-                        {selectedRecord.phase2_result.L5_Psychology && (
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">心理学分析</h5>
-                            <div className="space-y-2 text-sm text-gray-600">
-                              <div><span className="font-medium">人格类型：</span>{selectedRecord.phase2_result.L5_Psychology.personality_type}</div>
-                              <div><span className="font-medium">情绪曲线：</span>{selectedRecord.phase2_result.L5_Psychology.emotional_curve}</div>
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.L5_Psychology && (
+                            <div className="border rounded-lg p-4">
+                              <h5 className="font-medium mb-2">心理学分析</h5>
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <div><span className="font-medium">人格类型：</span>{phase2Data.L5_Psychology.personality_type}</div>
+                                <div><span className="font-medium">情绪曲线：</span>{phase2Data.L5_Psychology.emotional_curve}</div>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {/* 故事钩子 */}
-                        {selectedRecord.phase2_result.L6_Hooks && (
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">故事钩子</h5>
-                            <div className="text-sm text-gray-600">
-                              {selectedRecord.phase2_result.L6_Hooks.story_trigger}
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.L6_Hooks && (
+                            <div className="border rounded-lg p-4">
+                              <h5 className="font-medium mb-2">故事钩子</h5>
+                              <div className="text-sm text-gray-600">
+                                {phase2Data.L6_Hooks.story_trigger}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {/* 原始输出 */}
-                        {selectedRecord.phase2_result.raw_output && (
-                          <details className="mt-4">
-                            <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
-                              查看原始输出
-                            </summary>
-                            <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto">
-                              {selectedRecord.phase2_result.raw_output}
-                            </div>
-                          </details>
-                        )}
+                        {(() => {
+                          const phase2Data = selectedRecord.phase2_results && selectedRecord.phase2_results.length > 0 && selectedPhase2Version 
+                            ? selectedRecord.phase2_results.find(v => v.prompt_group_id === selectedPhase2Version || selectedRecord.phase2_results.indexOf(v) === parseInt(selectedPhase2Version))?.result 
+                            : selectedRecord.phase2_result;
+                          
+                          return phase2Data?.raw_output && (
+                            <details className="mt-4">
+                              <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
+                                查看原始输出
+                              </summary>
+                              <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                {phase2Data.raw_output}
+                              </div>
+                            </details>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
@@ -871,70 +925,7 @@ function MemoryRecordsPage () {
           </div>
         )}
 
-        {/* 重新生成Phase 2模态框 */}
-        {showRegenerateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold">重新生成Phase 2结果</h3>
-                  <button
-                    onClick={() => setShowRegenerateModal(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
 
-                {regenerateError && (
-                  <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-                    {regenerateError}
-                  </div>
-                )}
-
-                {regenerateSuccess && (
-                  <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
-                    {regenerateSuccess}
-                  </div>
-                )}
-
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">选择提示词组</label>
-                  <select
-                    className="w-full p-2 border rounded"
-                    value={selectedPromptGroup}
-                    onChange={(e) => setSelectedPromptGroup(e.target.value)}
-                  >
-                    <option value="">-- 选择提示词组 --</option>
-                    {promptGroups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setShowRegenerateModal(false)}
-                    className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded mr-2"
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={handleRegenerateSubmit}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    disabled={!selectedPromptGroup || regenerateLoading}
-                  >
-                    {regenerateLoading ? '重新生成中...' : '重新生成'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

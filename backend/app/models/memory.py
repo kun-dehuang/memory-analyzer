@@ -8,6 +8,7 @@ class MemoryRecordBase(BaseModel):
     prompt_group_id: str
     phase1_results: Optional[List[Dict[str, Any]]] = None
     phase2_result: Optional[Dict[str, Any]] = None
+    phase2_results: Optional[List[Dict[str, Any]]] = None  # 存储多个版本的Phase 2结果
     status: str  # pending, processing, completed, failed, needs_password
     error_message: Optional[str] = None
 
@@ -16,6 +17,7 @@ class MemoryRecordCreate(MemoryRecordBase):
     status: Optional[str] = None
     phase1_results: Optional[List[Dict[str, Any]]] = None
     phase2_result: Optional[Dict[str, Any]] = None
+    phase2_results: Optional[List[Dict[str, Any]]] = None
     error_message: Optional[str] = None
     icloud_password: Optional[str] = None
 

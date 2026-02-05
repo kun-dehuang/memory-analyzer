@@ -45,6 +45,7 @@ async def get_memory_records(
             "prompt_group_id": record["prompt_group_id"],
             "phase1_results": record.get("phase1_results"),  # 返回 phase1_results
             "phase2_result": record.get("phase2_result"),   # 返回 phase2_result
+            "phase2_results": record.get("phase2_results"), # 返回多个Phase 2版本
             "status": record["status"],
             "error_message": record.get("error_message"),
             "created_at": record["created_at"],
@@ -80,6 +81,7 @@ async def create_memory_record(
         "prompt_group_id": record_create.prompt_group_id,
         "phase1_results": record_create.phase1_results,
         "phase2_result": record_create.phase2_result,
+        "phase2_results": record_create.phase2_results,
         "status": "pending",
         "error_message": record_create.error_message,
         "created_at": datetime.utcnow(),
@@ -352,8 +354,9 @@ async def regenerate_phase2_result(
     try:
         analyzer = MemoryAnalyzer()
         
-        # 获取提示词
+        # 获取提示词和提示词组信息
         prompts = await analyzer._get_prompts(prompt_group_id)
+        prompt_group_name = prompts.get('name', f'提示词组 {prompt_group_id}')
         
         # 执行Phase 2分析
         phase2_result, phase2_time, phase2_tokens, phase2_prompt_tokens, phase2_candidates_tokens = await analyzer._execute_phase2(
@@ -361,11 +364,45 @@ async def regenerate_phase2_result(
             prompts=prompts
         )
         
+        # 构建Phase 2版本对象
+        phase2_version = {
+            "prompt_group_id": prompt_group_id,
+            "prompt_group_name": prompt_group_name,
+            "result": phase2_result,
+            "created_at": datetime.utcnow(),
+            "stats": {
+                "phase2_time": phase2_time,
+                "phase2_tokens": phase2_tokens,
+                "phase2_prompt_tokens": phase2_prompt_tokens,
+                "phase2_candidates_tokens": phase2_candidates_tokens
+            }
+        }
+        
+        # 获取现有记录
+        existing_record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
+        phase2_results = existing_record.get("phase2_results", [])
+        
+        # 检查是否已存在相同prompt group的版本
+        existing_version_index = None
+        for i, version in enumerate(phase2_results):
+            if version.get("prompt_group_id") == prompt_group_id:
+                existing_version_index = i
+                break
+        
+        # 更新或添加版本
+        if existing_version_index is not None:
+            # 更新现有版本
+            phase2_results[existing_version_index] = phase2_version
+        else:
+            # 添加新版本
+            phase2_results.append(phase2_version)
+        
         # 更新记录
         await memory_records_collection.update_one(
             {"_id": ObjectId(record_id)},
             {"$set": {
-                "phase2_result": phase2_result,
+                "phase2_result": phase2_result,  # 保持向后兼容，仍更新单个结果
+                "phase2_results": phase2_results,  # 更新多个版本
                 "stats": {
                     **record.get("stats", {}),
                     "phase2_time": phase2_time,
@@ -385,6 +422,7 @@ async def regenerate_phase2_result(
             "prompt_group_id": updated_record["prompt_group_id"],
             "phase1_results": updated_record.get("phase1_results"),
             "phase2_result": updated_record.get("phase2_result"),
+            "phase2_results": updated_record.get("phase2_results"),
             "status": updated_record["status"],
             "error_message": updated_record.get("error_message"),
             "created_at": updated_record["created_at"],
