@@ -310,6 +310,101 @@ async def delete_memory_record(
     return {"message": "记忆记录删除成功"}
 
 
+@router.put("/records/{record_id}/regenerate-phase2")
+async def regenerate_phase2_result(
+    record_id: str,
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """重新生成Phase 2结果"""
+    prompt_group_id = data.get("prompt_group_id")
+    
+    if not prompt_group_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请提供提示词组ID"
+        )
+    
+    # 查找记录
+    record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="记忆记录不存在"
+        )
+    
+    # 检查权限
+    if record["user_id"] != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权操作其他用户的记忆记录"
+        )
+    
+    # 检查是否有Phase 1结果
+    phase1_results = record.get("phase1_results")
+    if not phase1_results:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无Phase 1结果，无法重新生成Phase 2结果"
+        )
+    
+    # 重新生成Phase 2结果
+    try:
+        analyzer = MemoryAnalyzer()
+        
+        # 获取提示词
+        prompts = await analyzer._get_prompts(prompt_group_id)
+        
+        # 执行Phase 2分析
+        phase2_result, phase2_time, phase2_tokens, phase2_prompt_tokens, phase2_candidates_tokens = await analyzer._execute_phase2(
+            phase1_results=phase1_results,
+            prompts=prompts
+        )
+        
+        # 更新记录
+        await memory_records_collection.update_one(
+            {"_id": ObjectId(record_id)},
+            {"$set": {
+                "phase2_result": phase2_result,
+                "stats": {
+                    **record.get("stats", {}),
+                    "phase2_time": phase2_time,
+                    "phase2_tokens": phase2_tokens,
+                    "phase2_prompt_tokens": phase2_prompt_tokens,
+                    "phase2_candidates_tokens": phase2_candidates_tokens
+                },
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        # 返回更新后的记录
+        updated_record = await memory_records_collection.find_one({"_id": ObjectId(record_id)})
+        record_dict = {
+            "id": str(updated_record["_id"]),
+            "user_id": updated_record["user_id"],
+            "prompt_group_id": updated_record["prompt_group_id"],
+            "phase1_results": updated_record.get("phase1_results"),
+            "phase2_result": updated_record.get("phase2_result"),
+            "status": updated_record["status"],
+            "error_message": updated_record.get("error_message"),
+            "created_at": updated_record["created_at"],
+            "updated_at": updated_record["updated_at"],
+            "completed_at": updated_record.get("completed_at"),
+            "image_count": updated_record.get("image_count", 0),
+            "time_range": updated_record.get("time_range"),
+            "stats": updated_record.get("stats"),
+            "used_photos": updated_record.get("used_photos", [])
+        }
+        
+        return MemoryRecord(**record_dict)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"重新生成失败: {str(e)}"
+        )
+
+
 async def execute_memory_analysis(record_id: str, user_id: str, prompt_group_id: str, icloud_password: str, verification_code: str = None):
     """执行记忆分析任务"""
     # 确保logger已定义

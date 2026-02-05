@@ -1053,6 +1053,7 @@ class MemoryAnalyzer:
                     "features": features,
                     "compressed_info": compression_result,
                     "original_size": len(image_data),
+                    "image_data": image_data,
                     "created_at": datetime.now()
                 }
                 result = await photos_collection.insert_one(photo_doc)

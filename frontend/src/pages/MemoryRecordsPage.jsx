@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { memoryAPI, imageAPI } from '../api/api'
+import { memoryAPI, imageAPI, promptAPI } from '../api/api'
 
 function MemoryRecordsPage () {
   const navigate = useNavigate()
@@ -18,9 +18,28 @@ function MemoryRecordsPage () {
   const [imagesLoading, setImagesLoading] = useState(false)
   const [imagesError, setImagesError] = useState('')
 
+  // Regenerate Phase 2 state
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false)
+  const [regenerateRecord, setRegenerateRecord] = useState(null)
+  const [promptGroups, setPromptGroups] = useState([])
+  const [selectedPromptGroup, setSelectedPromptGroup] = useState('')
+  const [regenerateLoading, setRegenerateLoading] = useState(false)
+  const [regenerateError, setRegenerateError] = useState('')
+  const [regenerateSuccess, setRegenerateSuccess] = useState('')
+
   useEffect(() => {
     loadRecords()
+    loadPromptGroups()
   }, [])
+
+  const loadPromptGroups = async () => {
+    try {
+      const groups = await promptAPI.getPromptGroups()
+      setPromptGroups(groups)
+    } catch (err) {
+      console.error('加载提示词组失败:', err)
+    }
+  }
 
   const loadRecords = async () => {
     setLoading(true)
@@ -58,13 +77,53 @@ function MemoryRecordsPage () {
       } else {
         setRecordImages([])
       }
-      
-      setShowImagesModal(true)
     } catch (err) {
       setImagesError('加载图片失败')
       console.error('加载图片失败:', err)
+      setRecordImages([])
     } finally {
       setImagesLoading(false)
+      setShowImagesModal(true)
+    }
+  }
+
+  const handleRegeneratePhase2 = (record) => {
+    setRegenerateRecord(record)
+    setRegenerateError('')
+    setRegenerateSuccess('')
+    setShowRegenerateModal(true)
+  }
+
+  const handleRegenerateSubmit = async () => {
+    if (!selectedPromptGroup || !regenerateRecord) {
+      setRegenerateError('请选择提示词组')
+      return
+    }
+
+    try {
+      setRegenerateLoading(true)
+      setRegenerateError('')
+      
+      // 调用API重新生成Phase 2结果
+      const updatedRecord = await memoryAPI.regeneratePhase2Result(
+        regenerateRecord.id,
+        selectedPromptGroup
+      )
+      
+      // 更新选中的记录
+      setSelectedRecord(updatedRecord)
+      setRegenerateSuccess('重新生成成功')
+      
+      // 3秒后关闭模态框
+      setTimeout(() => {
+        setShowRegenerateModal(false)
+        setSelectedPromptGroup('')
+      }, 3000)
+    } catch (err) {
+      console.error('重新生成失败:', err)
+      setRegenerateError('重新生成失败，请重试')
+    } finally {
+      setRegenerateLoading(false)
     }
   }
 
@@ -583,7 +642,15 @@ function MemoryRecordsPage () {
                   {/* Phase 2 结果 */}
                   {selectedRecord.phase2_result && (
                     <div className="mb-6">
-                      <h4 className="text-lg font-semibold mb-3 text-green-600">Phase 2 综合分析</h4>
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-lg font-semibold text-green-600">Phase 2 综合分析</h4>
+                        <button
+                          onClick={() => handleRegeneratePhase2(selectedRecord)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                        >
+                          重新生成
+                        </button>
+                      </div>
                       <div className="space-y-4">
                         {/* 元信息 */}
                         {selectedRecord.phase2_result.meta && (
@@ -771,6 +838,13 @@ function MemoryRecordsPage () {
                           <div className="text-xs text-gray-500 mb-2">
                             {new Date(image.datetime).toLocaleString('zh-CN')}
                           </div>
+                          <div className="mb-2">
+                            <img 
+                              src={`/api/images/data/${image.id}`} 
+                              alt={image.filename} 
+                              className="max-w-full h-auto max-h-48 object-contain"
+                            />
+                          </div>
                           {image.features && (
                             <div className="text-xs text-gray-600 mb-2">
                               <div>美学评分: {image.features.aesthetic_score?.toFixed(2) || 'N/A'}</div>
@@ -792,6 +866,71 @@ function MemoryRecordsPage () {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 重新生成Phase 2模态框 */}
+        {showRegenerateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold">重新生成Phase 2结果</h3>
+                  <button
+                    onClick={() => setShowRegenerateModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {regenerateError && (
+                  <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+                    {regenerateError}
+                  </div>
+                )}
+
+                {regenerateSuccess && (
+                  <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+                    {regenerateSuccess}
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2">选择提示词组</label>
+                  <select
+                    className="w-full p-2 border rounded"
+                    value={selectedPromptGroup}
+                    onChange={(e) => setSelectedPromptGroup(e.target.value)}
+                  >
+                    <option value="">-- 选择提示词组 --</option>
+                    {promptGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowRegenerateModal(false)}
+                    className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded mr-2"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleRegenerateSubmit}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                    disabled={!selectedPromptGroup || regenerateLoading}
+                  >
+                    {regenerateLoading ? '重新生成中...' : '重新生成'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

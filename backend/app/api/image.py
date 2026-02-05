@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import Response
 from typing import List, Optional
 from bson import ObjectId
 
@@ -220,3 +221,58 @@ async def delete_image(
     await photos_collection.delete_one({"_id": ObjectId(image_id)})
     
     return {"message": "图片删除成功"}
+
+
+@router.get("/data/{image_id}")
+async def get_image_data(
+    image_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    获取图片数据
+    
+    Args:
+        image_id: 图片ID
+        current_user: 当前用户
+    
+    Returns:
+        图片二进制数据
+    """
+    # 查询图片
+    image = await photos_collection.find_one({"_id": ObjectId(image_id)})
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="图片不存在"
+        )
+    
+    # 检查权限
+    if image["user_id"] != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问其他用户的图片"
+        )
+    
+    # 获取图片数据
+    image_data = image.get("image_data")
+    if not image_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="图片数据不存在"
+        )
+    
+    # 确定MIME类型
+    filename = image.get("filename", "image.jpg")
+    if filename.lower().endswith(".jpg") or filename.lower().endswith(".jpeg"):
+        media_type = "image/jpeg"
+    elif filename.lower().endswith(".png"):
+        media_type = "image/png"
+    elif filename.lower().endswith(".gif"):
+        media_type = "image/gif"
+    elif filename.lower().endswith(".webp"):
+        media_type = "image/webp"
+    else:
+        media_type = "image/jpeg"
+    
+    # 返回图片数据
+    return Response(content=image_data, media_type=media_type)

@@ -122,7 +122,9 @@ export const memoryAPI = {
   // 提供验证码
   provideVerificationCode: (recordId, verificationCode) => api.put(`/memory/records/${recordId}/provide-verification`, { verification_code: verificationCode }),
   // 删除记忆记录
-  deleteMemoryRecord: (recordId) => api.delete(`/memory/records/${recordId}`)
+  deleteMemoryRecord: (recordId) => api.delete(`/memory/records/${recordId}`),
+  // 重新生成Phase 2结果
+  regeneratePhase2Result: (recordId, promptGroupId) => api.put(`/memory/records/${recordId}/regenerate-phase2`, { prompt_group_id: promptGroupId })
 }
 
 // 图片相关API
