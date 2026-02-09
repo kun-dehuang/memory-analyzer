@@ -127,9 +127,24 @@ app = FastAPI(
 )
 
 # 配置CORS
+# 允许的源列表 - 包括 GitHub Pages 和本地开发环境
+allowed_origins = [
+    "https://kun-dehuang.github.io",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+
+# 如果环境变量中有配置的额外源，也添加进去
+import os
+extra_origins = os.getenv("ALLOWED_ORIGINS", "")
+if extra_origins:
+    allowed_origins.extend([origin.strip() for origin in extra_origins.split(",")])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kun-dehuang.github.io"],  # 替换为你的GitHub Pages域名
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
