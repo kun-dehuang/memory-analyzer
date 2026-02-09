@@ -4,6 +4,80 @@ import { Link, useNavigate } from 'react-router-dom'
 import { login } from '../store'
 import { authAPI } from '../api/api'
 
+// 补充内联样式，解决样式缺失问题
+const styles = {
+  // 基础输入框样式
+  input: {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.75rem',
+    border: '1px solid #e5e7eb',
+    fontSize: '0.875rem',
+    lineHeight: '1.25rem',
+    color: '#111827',
+    backgroundColor: 'white',
+    transition: 'border-color 0.2s ease-in-out',
+    boxSizing: 'border-box'
+  },
+  // 按钮基础样式
+  btn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '0.75rem',
+    fontWeight: '600',
+    transition: 'all 0.2s ease-in-out',
+    boxSizing: 'border-box'
+  },
+  // 主按钮样式
+  btnPrimary: {
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    border: 'none',
+    padding: '0.75rem 1.5rem'
+  },
+  // 加载中动画样式
+  spinner: {
+    width: '1rem',
+    height: '1rem',
+    border: '2px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '50%',
+    borderTopColor: 'white',
+    animation: 'spin 1s linear infinite'
+  },
+  // 毛玻璃效果
+  glass: {
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)', // 兼容webkit内核
+  }
+}
+
+// 全局样式注入（解决spinner动画）
+if (!document.getElementById('login-page-styles')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = 'login-page-styles';
+  styleSheet.textContent = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+    .btn-primary:hover {
+      background-color: #4338ca;
+      cursor: pointer;
+    }
+    .btn-primary:disabled {
+      background-color: #818cf8;
+      cursor: not-allowed;
+    }
+  `;
+  document.head.appendChild(styleSheet);
+}
+
 function LoginPage () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -70,46 +144,75 @@ function LoginPage () {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 relative overflow-hidden">
-      {/* 背景装饰元素 */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
-      </div>
-
-      {/* 登录卡片 */}
-      <div className="relative z-10 w-full max-w-md mx-4">
-        <div className="glass bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/20">
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      background: 'linear-gradient(to bottom right, #6366f1, #a855f7, #ec4899)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* 登录卡片 - 提升层级并约束宽度 */}
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 10, 
+        width: '100%', 
+        maxWidth: '28rem', 
+        margin: '0 1rem' 
+      }}>
+        <div style={{
+          ...styles.glass,
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          borderRadius: '1.5rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          padding: '1.5rem',
+          border: '1px solid rgba(255,255,255,0.2)'
+        }}>
           {/* Logo 和标题 */}
-          <div className="text-center mb-5">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <h1 className="text-lg font-bold text-gray-800">Memory Analyzer</h1>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '0.5rem', backgroundColor: '#e0e7ff', borderRadius: '50%' }}>
+                {/* 图标增加严格尺寸约束 */}
+                <svg style={{ width: '2rem', height: '2rem', color: '#4f46e5' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1f2937' }}>Memory Analyzer</h1>
             </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+              分析您的照片，发现隐藏的记忆模式
+            </p>
           </div>
 
           {/* 错误提示 */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-              <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <div style={{ 
+              marginBottom: '1.5rem', 
+              padding: '1rem', 
+              backgroundColor: '#fef2f2', 
+              border: '1px solid #fecaca', 
+              borderRadius: '1rem', 
+              display: 'flex', 
+              alignItems: 'flex-start', 
+              gap: '0.75rem' 
+            }}>
+              <svg style={{ width: '1.25rem', height: '1.25rem', color: '#ef4444', marginTop: '0.125rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <p className="text-sm text-red-700">{error}</p>
+              <p style={{ fontSize: '0.875rem', color: '#b91c1c' }}>{error}</p>
             </div>
           )}
 
           {/* 登录表单 */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
                 iCloud 邮箱
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', insetY: 0, left: 0, paddingLeft: '0.75rem', display: 'flex', alignItems: 'center', pointerEvents: 'none', top: '12px' }}>
+                  <svg style={{ width: '1.25rem', height: '1.25rem', color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
                 </div>
@@ -118,7 +221,7 @@ function LoginPage () {
                   name="icloud_email"
                   value={formData.icloud_email}
                   onChange={handleChange}
-                  className="input pl-10"
+                  style={{ ...styles.input, paddingLeft: '2.5rem' }}
                   placeholder="your@email.com"
                   required
                 />
@@ -126,12 +229,12 @@ function LoginPage () {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
                 iCloud 密码
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', insetY: 0, left: 0, paddingLeft: '0.75rem', display: 'flex', alignItems: 'center', pointerEvents: 'none', top: '12px' }}>
+                  <svg style={{ width: '1.25rem', height: '1.25rem', color: '#9ca3af' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -140,14 +243,24 @@ function LoginPage () {
                   name="icloud_password"
                   value={formData.icloud_password}
                   onChange={handleChange}
-                  className="input pl-10"
+                  style={{ ...styles.input, paddingLeft: '2.5rem' }}
                   placeholder="••••••••"
                   required
                 />
               </div>
               {passwordHint && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <div style={{ 
+                  marginTop: '0.5rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  fontSize: '0.875rem', 
+                  color: '#c2410c', 
+                  backgroundColor: '#fffbeb', 
+                  padding: '0.75rem', 
+                  borderRadius: '0.75rem' 
+                }}>
+                  <svg style={{ width: '1rem', height: '1rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   {passwordHint}
@@ -157,12 +270,12 @@ function LoginPage () {
 
             <button
               type="submit"
-              className="btn btn-primary w-full py-3 text-base font-semibold"
+              style={{ ...styles.btn, ...styles.btnPrimary, width: '100%', padding: '0.75rem 1rem', fontSize: '1rem' }}
               disabled={loading}
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="spinner"></span>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <span style={styles.spinner}></span>
                   登录中...
                 </span>
               ) : (
@@ -172,10 +285,12 @@ function LoginPage () {
           </form>
 
           {/* 注册链接 */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 text-sm">
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <p style={{ color: '#4b5563', fontSize: '0.875rem' }}>
               还没有账号？{' '}
-              <Link to="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline">
+              <Link to="/register" style={{ color: '#4f46e5', fontWeight: '600', textDecoration: 'none' }} 
+                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                onMouseOut={(e) => e.target.style.textDecoration = 'none'}>
                 立即注册
               </Link>
             </p>
@@ -183,8 +298,8 @@ function LoginPage () {
         </div>
 
         {/* 底部信息 */}
-        <p className="mt-6 text-center text-white/70 text-xs">
-          © 2024 Memory Analyzer. All rights reserved.
+        <p style={{ marginTop: '1.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>
+          © 2026 Memory Analyzer. All rights reserved.
         </p>
       </div>
     </div>
