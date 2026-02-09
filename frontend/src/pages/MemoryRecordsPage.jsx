@@ -202,19 +202,27 @@ function MemoryRecordsPage () {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen page-container">
       {/* 导航栏 */}
-      <nav className="bg-white shadow-md">
+      <nav className="navbar sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-blue-600">Memory Analyzer</h1>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold gradient-text hidden sm:block">Memory Analyzer</h1>
             </div>
             <div className="flex items-center">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded mr-4"
+                className="btn btn-secondary flex items-center gap-2"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
                 返回首页
               </button>
             </div>
@@ -223,125 +231,163 @@ function MemoryRecordsPage () {
       </nav>
 
       {/* 主内容 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">记忆分析记录</h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="card-elevated p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
+              <h2 className="text-2xl font-bold text-gray-900">记忆分析记录</h2>
+              <p className="text-sm text-gray-500 mt-1">查看和管理您的分析历史</p>
+            </div>
+            <div className="flex items-center gap-3">
               <button
                 onClick={loadRecords}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2"
+                className="btn btn-secondary flex items-center gap-2"
                 disabled={loading}
               >
+                {loading ? (
+                  <span className="spinner"></span>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
                 {loading ? '加载中...' : '刷新'}
               </button>
-              {/* 测试按钮 */}
               <button
-                onClick={() => {
-                  console.log('点击了测试按钮')
-                  setCurrentRecordId('test-record-id')
-                  setShowVerificationForm(true)
-                  console.log('测试按钮 - 设置状态后')
-                }}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                onClick={() => navigate('/dashboard')}
+                className="btn btn-primary flex items-center gap-2"
               >
-                测试验证码表单
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                新建分析
               </button>
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">图片数量</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间范围</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  <th>ID</th>
+                  <th>状态</th>
+                  <th>图片数量</th>
+                  <th>时间范围</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {records.map((record) => (
                   <tr key={record.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-xs text-gray-500">{record.id.substring(0, 8)}...</span>
+                    <td>
+                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{record.id.substring(0, 8)}...</code>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(record.status)}
+                    <td>{getStatusBadge(record.status)}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <span className="font-medium">{record.image_count || 0}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {record.image_count || 0}
+                    <td>
+                      <div className="text-sm">
+                        {record.time_range ? (
+                          <div>
+                            <div className="font-medium">{record.time_range[0]}</div>
+                            <div className="text-xs text-gray-500">至 {record.time_range[1]}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {record.time_range ? `${record.time_range[0]} 至 ${record.time_range[1]}` : '-'}
+                    <td>
+                      <div className="text-sm">{new Date(record.created_at).toLocaleString('zh-CN')}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(record.created_at).toLocaleString('zh-CN')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {record.status === 'completed' && (
-                        <>
-                          <button
-                            onClick={() => viewRecord(record.id)}
-                            className="text-blue-600 hover:text-blue-800 mr-2"
-                          >
-                            查看结果
-                          </button>
-                          {record.used_photos && record.used_photos.length > 0 && (
+                    <td>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {record.status === 'completed' && (
+                          <>
                             <button
-                              onClick={() => viewRecordImages(record)}
-                              className="text-green-600 hover:text-green-800 mr-2"
+                              onClick={() => viewRecord(record.id)}
+                              className="btn btn-ghost text-indigo-600 text-xs px-3 py-1.5"
                             >
-                              查看图片
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              查看结果
                             </button>
-                          )}
-                        </>
-                      )}
-                      {record.status === 'failed' && (
-                        <span className="text-red-600 text-sm">
-                          {record.error_message || '分析失败'}
-                        </span>
-                      )}
-                      {record.status === 'needs_password' && (
+                            {record.used_photos && record.used_photos.length > 0 && (
+                              <button
+                                onClick={() => viewRecordImages(record)}
+                                className="btn btn-ghost text-green-600 text-xs px-3 py-1.5"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                查看图片
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {record.status === 'failed' && (
+                          <span className="text-red-600 text-xs bg-red-50 px-2 py-1 rounded">
+                            {record.error_message || '分析失败'}
+                          </span>
+                        )}
+                        {record.status === 'needs_password' && (
+                          <button
+                            onClick={() => {
+                              setPasswordRecordId(record.id)
+                              setPasswordModalVisible(true)
+                            }}
+                            className="btn btn-ghost text-orange-600 text-xs px-3 py-1.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            提供密码
+                          </button>
+                        )}
+                        {record.status === 'needs_verification' && (
+                          <button
+                            onClick={() => {
+                              setCurrentRecordId(record.id)
+                              setShowVerificationForm(true)
+                            }}
+                            className="btn btn-ghost text-purple-600 text-xs px-3 py-1.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            输入验证码
+                          </button>
+                        )}
                         <button
-                          onClick={() => {
-                            console.log('需要密码:', record.id)
-                            setPasswordRecordId(record.id)
-                            setPasswordModalVisible(true)
-                          }}
-                          className="text-orange-600 hover:text-orange-800 mr-2"
+                          onClick={() => handleDeleteRecord(record.id)}
+                          className="btn btn-ghost text-red-600 hover:bg-red-50 text-xs px-3 py-1.5"
                         >
-                          提供密码
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          删除
                         </button>
-                      )}
-                      {record.status === 'needs_verification' && (
-                        <button
-                          onClick={() => {
-                            console.log('点击了输入验证码按钮，record.id:', record.id)
-                            setCurrentRecordId(record.id)
-                            setShowVerificationForm(true)
-                            console.log('设置状态后 - currentRecordId:', record.id, 'showVerificationForm:', true)
-                          }}
-                          className="text-purple-600 hover:text-purple-800 mr-2"
-                        >
-                          输入验证码
-                        </button>
-                      )}
-                      {/* 删除按钮 - 对所有状态的记录都显示 */}
-                      <button
-                        onClick={() => handleDeleteRecord(record.id)}
-                        className="text-red-600 hover:text-red-800 mr-2"
-                      >
-                        删除
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -350,219 +396,148 @@ function MemoryRecordsPage () {
           </div>
 
           {records.length === 0 && !loading && (
-            <div className="text-center py-12 text-gray-500">
-              暂无记录
+            <div className="text-center py-16">
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">暂无记录</h3>
+              <p className="text-gray-500 text-sm mb-6">创建您的第一个记忆分析</p>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="btn btn-primary"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                新建分析
+              </button>
             </div>
           )}
 
           {/* 验证码输入表单 */}
-          {console.log('渲染验证码表单前 - showVerificationForm:', showVerificationForm)}
           {showVerificationForm && (
-            <>
-              {console.log('验证码表单正在渲染，showVerificationForm:', showVerificationForm, 'currentRecordId:', currentRecordId)}
-              {/* 简化的验证码输入表单，确保能正确显示 */}
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999,
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  backgroundColor: 'white',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                  width: '90%',
-                  maxWidth: '400px'
-                }}>
-                  <h3 style={{ marginBottom: '20px' }}>输入 iCloud 验证码</h3>
+            <div className="modal-overlay">
+              <div className="modal-content w-full max-w-md mx-4">
+                <div className="p-6">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-center mb-2">输入 iCloud 验证码</h3>
+                  <p className="text-sm text-gray-500 text-center mb-6">Apple 已向您的设备发送验证码</p>
 
                   {verificationError && (
-                    <div style={{
-                      backgroundColor: '#fee2e2',
-                      color: '#b91c1c',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      marginBottom: '15px'
-                    }}>
-                      {verificationError}
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-sm">
+                      <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-red-700">{verificationError}</span>
                     </div>
                   )}
 
                   {verificationSuccess && (
-                    <div style={{
-                      backgroundColor: '#dcfce7',
-                      color: '#166534',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      marginBottom: '15px'
-                    }}>
-                      {verificationSuccess}
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2 text-sm">
+                      <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-green-700">{verificationSuccess}</span>
                     </div>
                   )}
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px' }}>验证码</label>
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">验证码</label>
                     <input
                       type="text"
                       value={verificationCode}
-                      onChange={(e) => {
-                        console.log('验证码输入改变:', e.target.value)
-                        setVerificationCode(e.target.value)
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px'
-                      }}
-                      placeholder="请输入 iCloud 发送的验证码"
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      className="input text-center text-lg tracking-widest"
+                      placeholder="000000"
+                      maxLength={6}
+                      autoFocus
                     />
                   </div>
 
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="flex gap-3">
                     <button
                       onClick={handleProvideVerificationCode}
-                      style={{
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
+                      className="btn btn-primary flex-1"
                     >
                       提交验证码
                     </button>
                     <button
-                      onClick={() => {
-                        console.log('点击了取消按钮')
-                        setShowVerificationForm(false)
-                        console.log('取消按钮 - 设置状态后')
-                      }}
-                      style={{
-                        backgroundColor: '#e5e7eb',
-                        color: '#374151',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
+                      onClick={() => setShowVerificationForm(false)}
+                      className="btn btn-secondary"
                     >
                       取消
                     </button>
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* 密码输入表单 */}
           {passwordModalVisible && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '20px',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                width: '90%',
-                maxWidth: '400px'
-              }}>
-                <h3 style={{ marginBottom: '20px' }}>输入 iCloud 密码</h3>
-
-                {passwordError && (
-                  <div style={{
-                    backgroundColor: '#fee2e2',
-                    color: '#b91c1c',
-                    padding: '10px',
-                    borderRadius: '4px',
-                    marginBottom: '15px'
-                  }}>
-                    {passwordError}
+            <div className="modal-overlay">
+              <div className="modal-content w-full max-w-md mx-4">
+                <div className="p-6">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
                   </div>
-                )}
+                  <h3 className="text-xl font-bold text-center mb-2">输入 iCloud 密码</h3>
+                  <p className="text-sm text-gray-500 text-center mb-6">请输入您的 iCloud 密码以继续</p>
 
-                {passwordSuccess && (
-                  <div style={{
-                    backgroundColor: '#dcfce7',
-                    color: '#166534',
-                    padding: '10px',
-                    borderRadius: '4px',
-                    marginBottom: '15px'
-                  }}>
-                    {passwordSuccess}
+                  {passwordError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-sm">
+                      <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-red-700">{passwordError}</span>
+                    </div>
+                  )}
+
+                  {passwordSuccess && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2 text-sm">
+                      <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-green-700">{passwordSuccess}</span>
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">iCloud 密码</label>
+                    <input
+                      type="password"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      className="input"
+                      placeholder="••••••••"
+                      autoFocus
+                    />
                   </div>
-                )}
 
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>iCloud 密码</label>
-                  <input
-                    type="password"
-                    value={passwordInput}
-                    onChange={(e) => {
-                      console.log('密码输入改变:', e.target.value)
-                      setPasswordInput(e.target.value)
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px'
-                    }}
-                    placeholder="请输入 iCloud 密码"
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={handleProvidePassword}
-                    style={{
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    提交密码
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('点击了取消按钮')
-                      setPasswordModalVisible(false)
-                      console.log('取消按钮 - 设置状态后')
-                    }}
-                    style={{
-                      backgroundColor: '#e5e7eb',
-                      color: '#374151',
-                      padding: '8px 16px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    取消
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleProvidePassword}
+                      className="btn btn-primary flex-1"
+                    >
+                      提交密码
+                    </button>
+                    <button
+                      onClick={() => setPasswordModalVisible(false)}
+                      className="btn btn-secondary"
+                    >
+                      取消
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -570,20 +545,24 @@ function MemoryRecordsPage () {
 
           {/* 结果详情弹窗 */}
           {selectedRecord && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold">分析结果详情</h3>
-                    <button
-                      onClick={() => setSelectedRecord(null)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+            <div className="modal-overlay z-50">
+              <div className="modal-content w-full max-w-5xl mx-4">
+                <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">分析结果详情</h3>
+                    <p className="text-sm text-gray-500">ID: {selectedRecord.id.substring(0, 8)}...</p>
                   </div>
+                  <button
+                    onClick={() => setSelectedRecord(null)}
+                    className="btn btn-ghost p-2 hover:bg-gray-100 rounded-lg"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="p-6">
 
                   {/* Phase 1 结果 */}
                   {selectedRecord.phase1_results && selectedRecord.phase1_results.length > 0 && (
@@ -856,20 +835,24 @@ function MemoryRecordsPage () {
 
         {/* 图片查看模态框 */}
         {showImagesModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold">使用的图片</h3>
-                  <button
-                    onClick={() => setShowImagesModal(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+          <div className="modal-overlay z-50">
+            <div className="modal-content w-full max-w-5xl mx-4">
+              <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">使用的图片</h3>
+                  <p className="text-sm text-gray-500">{recordImages.length} 张照片</p>
                 </div>
+                <button
+                  onClick={() => setShowImagesModal(false)}
+                  className="btn btn-ghost p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6">
 
                 {imagesLoading && (
                   <div className="text-center py-8">
@@ -884,38 +867,56 @@ function MemoryRecordsPage () {
                 )}
 
                 {!imagesLoading && !imagesError && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {recordImages.length > 0 ? (
                       recordImages.map((image) => (
-                        <div key={image.id} className="border rounded-lg p-2">
-                          <div className="font-medium text-sm mb-1">{image.filename}</div>
-                          <div className="text-xs text-gray-500 mb-2">
-                            {new Date(image.datetime).toLocaleString('zh-CN')}
-                          </div>
-                          <div className="mb-2">
-                            <img 
-                              src={`/api/images/data/${image.id}`} 
-                              alt={image.filename} 
-                              className="max-w-full h-auto max-h-48 object-contain"
+                        <div key={image.id} className="card overflow-hidden group">
+                          <div className="aspect-square overflow-hidden bg-gray-100">
+                            <img
+                              src={`/api/images/data/${image.id}`}
+                              alt={image.filename}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
-                          {image.features && (
-                            <div className="text-xs text-gray-600 mb-2">
-                              <div>美学评分: {image.features.aesthetic_score?.toFixed(2) || 'N/A'}</div>
-                              <div>信息量评分: {image.features.information_score?.toFixed(2) || 'N/A'}</div>
+                          <div className="p-3">
+                            <div className="font-medium text-sm truncate mb-1" title={image.filename}>
+                              {image.filename}
                             </div>
-                          )}
-                          {image.compressed_info && (
-                            <div className="text-xs text-gray-600">
-                              <div>压缩后: {image.compressed_info.width}x{image.compressed_info.height}</div>
-                              <div>格式: {image.compressed_info.format}</div>
+                            <div className="text-xs text-gray-500 mb-2">
+                              {new Date(image.datetime).toLocaleString('zh-CN')}
                             </div>
-                          )}
+                            {image.features && (
+                              <div className="flex gap-2 mb-2">
+                                <div className="flex-1 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg px-2 py-1 text-center">
+                                  <div className="text-xs text-gray-500">美学</div>
+                                  <div className="text-sm font-semibold text-pink-600">
+                                    {image.features.aesthetic_score?.toFixed(2) || 'N/A'}
+                                  </div>
+                                </div>
+                                <div className="flex-1 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg px-2 py-1 text-center">
+                                  <div className="text-xs text-gray-500">信息</div>
+                                  <div className="text-sm font-semibold text-blue-600">
+                                    {image.features.information_score?.toFixed(2) || 'N/A'}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {image.compressed_info && (
+                              <div className="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
+                                {image.compressed_info.width}x{image.compressed_info.height} · {image.compressed_info.format}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-full text-center py-8 text-gray-500">
-                        暂无图片
+                      <div className="col-span-full text-center py-12">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-500">暂无图片</p>
                       </div>
                     )}
                   </div>
