@@ -82,14 +82,13 @@ function LoginPage () {
       <div className="relative z-10 w-full max-w-md mx-4">
         <div className="glass bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/20">
           {/* Logo 和标题 */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg mb-2">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center mb-5">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
+              <h1 className="text-lg font-bold text-gray-800">Memory Analyzer</h1>
             </div>
-            <h1 className="text-xl font-bold gradient-text mb-1">Memory Analyzer</h1>
-            <p className="text-gray-600 text-sm">AI 驱动的记忆分析平台</p>
           </div>
 
           {/* 错误提示 */}
